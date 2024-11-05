@@ -1,7 +1,8 @@
 // src/components/App.tsx
 
 import { FunctionalComponent } from '../core/vdom';
-import { useStore } from '../core/hooks';
+import { usePulse } from '../core/hooks';
+import { appStore } from '../store';
 import { Counter } from './Counter';
 import { UserProfile } from './UserProfile';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -9,8 +10,8 @@ import { Alert } from './Alert';
 import { Button } from './Button';
 
 export const App: FunctionalComponent = () => {
-  const [theme] = useStore('theme');
-  const [, setAlertVisible] = useStore('alertVisible');
+  const [theme] = usePulse('theme', appStore);
+  const [, setAlertVisible] = usePulse('alertVisible', appStore);
 
   return (
     <div

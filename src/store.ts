@@ -1,24 +1,29 @@
 // src/store.ts
 
-import { reactive } from './core/reactive';
+import { PulseStore } from './core/store';
 
 /**
  * Define the shape of your global state
  */
 export interface AppState {
   count: number;
-  userName: string;
   alertVisible: boolean;
   theme: 'light' | 'dark';
-  // Add more state properties as needed
+}
+
+export interface UserState {
+  userName: string;
 }
 
 /**
- * Initialize the ReactiveStore with default values
+ * Initialize the PulseStore with default values
  */
-export const store = reactive<AppState>({
+export const appStore = new PulseStore<AppState>({
   count: 0,
-  userName: 'Guest',
   alertVisible: false,
-  theme: 'dark'
+  theme: 'dark',
+});
+
+export const userStore = new PulseStore<UserState>({
+  userName: 'Guest',
 });

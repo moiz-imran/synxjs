@@ -4,7 +4,7 @@ type Effect = () => void;
 
 let activeEffect: Effect | null = null;
 
-// Maps to track dependencies between state properties and effects
+// Maps to track dependencies between pulse properties and effects
 const targetMap = new WeakMap<object, Map<string | symbol, Set<Effect>>>();
 
 /**
@@ -27,7 +27,7 @@ export function reactive<T extends object>(target: T): T {
 }
 
 /**
- * Tracks dependencies between state properties and effects.
+ * Tracks dependencies between pulse properties and effects.
  * @param target - The reactive object.
  * @param key - The property key being accessed.
  */
@@ -50,7 +50,7 @@ function track(target: object, key: string | symbol) {
 }
 
 /**
- * Triggers effects associated with a particular state property.
+ * Triggers effects associated with a particular pulse property.
  * @param target - The reactive object.
  * @param key - The property key being modified.
  */
@@ -65,7 +65,7 @@ function trigger(target: object, key: string | symbol) {
 }
 
 /**
- * Registers an effect (side-effect function) that depends on reactive state.
+ * Registers an effect (side-effect function) that depends on reactive pulses.
  * @param eff - The effect function to register.
  * @returns A cleanup function to remove the effect.
  */
@@ -76,5 +76,6 @@ export function effect(eff: Effect): () => void {
 
   return () => {
     // Optional: Implement effect cleanup if needed
+    // This can be expanded to remove the effect from all dependencies
   };
 }

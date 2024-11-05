@@ -1,6 +1,7 @@
 // src/components/Alert.tsx
 
-import { useStore } from '../core/hooks';
+import { appStore } from '../store';
+import { usePulse } from '../core/hooks';
 import { FunctionalComponent } from '../core/vdom';
 
 interface AlertProps {
@@ -14,7 +15,7 @@ export const Alert: FunctionalComponent<AlertProps> = ({
   type = 'info',
   dismissible = false,
 }) => {
-  const [alertVisible, setAlertVisible] = useStore('alertVisible');
+  const [alertVisible, setAlertVisible] = usePulse('alertVisible', appStore);
 
   if (!alertVisible) {
     return null;

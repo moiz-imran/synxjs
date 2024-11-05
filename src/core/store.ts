@@ -1,46 +1,63 @@
-// src/core/store.ts
+// src/core/PulseStore.ts
 
-type Listener = () => void;
+import { reactive, effect } from './reactive';
 
-export class ReactiveStore<T extends Record<string, any>> {
-  private state: T;
+type Listener = (changedKeys: Set<string | symbol>) => void;
+
+/**
+ * PulseStore manages a collection of pulses within the Nova system.
+ */
+export class PulseStore<T extends Record<string, any>> {
+  private pulses: T;
   private listeners: Listener[] = [];
 
-  constructor(initialState: T) {
-    this.state = initialState;
-  }
-
   /**
-   * Retrieves the current state.
+   * Initializes the PulseStore with the provided initial pulses.
+   * @param initialPulses - The initial state of pulses.
    */
-  getState(): T {
-    return this.state;
+  constructor(initialPulses: T) {
+    // Make pulses reactive
+    this.pulses = reactive(initialPulses);
   }
 
   /**
-   * Updates the state and notifies all listeners.
-   * @param newState - Partial state to merge with the current state.
+   * Retrieves the current pulses.
+   * @returns The current state of pulses.
    */
-  setState(newState: Partial<T>): void {
-    this.state = { ...this.state, ...newState };
-    this.notify();
+  getPulses(): T {
+    return this.pulses;
   }
 
   /**
-   * Subscribes a listener to state changes.
-   * @param listener - The callback to invoke on state changes.
+   * Updates the pulses and notifies all listeners of the change.
+   * @param newPulses - Partial pulses to merge with the existing state.
+   */
+  setPulses<K extends keyof T>(newPulses: Pick<T, K>): void {
+    Object.assign(this.pulses, newPulses);
+    const changedKeys = new Set(Object.keys(newPulses));
+
+    if (changedKeys.size > 0) {
+      this.notify(changedKeys);
+    }
+  }
+
+  /**
+   * Subscribes a listener to pulse changes.
+   * @param listener - The callback to invoke when pulses change.
+   * @returns A function to unsubscribe the listener.
    */
   subscribe(listener: Listener): () => void {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
   /**
-   * Notifies all subscribed listeners of a state change.
+   * Notifies all subscribed listeners about pulse changes.
+   * @param changedKeys - The set of keys that have changed.
    */
-  private notify(): void {
-    this.listeners.forEach(listener => listener());
+  private notify(changedKeys: Set<string | symbol>): void {
+    this.listeners.forEach((listener) => listener(changedKeys));
   }
 }

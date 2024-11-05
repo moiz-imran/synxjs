@@ -2,7 +2,7 @@
 
 import { Component } from '../core/component';
 import { VNode } from '../core/vdom';
-import { store } from '../store';
+import { appStore } from '../store';
 
 interface ThemeSwitcherProps {
   // The unique key is handled externally; no need to include it here
@@ -18,7 +18,7 @@ export class ThemeSwitcher extends Component<
 > {
   protected initialState(): ThemeSwitcherState {
     return {
-      currentTheme: store.theme,
+      currentTheme: appStore.getPulses().theme,
     };
   }
 
@@ -29,14 +29,16 @@ export class ThemeSwitcher extends Component<
   componentDidMount(): void {
     // Subscribe to the 'theme' property in the store
     this.subscribeToStore(() => {
-      this.setState({ currentTheme: store.theme });
+      this.setState({ currentTheme: appStore.getPulses().theme });
       this.applyTheme();
     });
     this.applyTheme();
   }
 
   toggleTheme = () => {
-    store.theme = store.theme === 'light' ? 'dark' : 'light';
+    appStore.setPulses({
+      theme: appStore.getPulses().theme === 'light' ? 'dark' : 'light',
+    });
   };
 
   applyTheme(): void {

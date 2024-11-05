@@ -1,11 +1,12 @@
 // src/components/UserProfile.tsx
 
 import { FunctionalComponent } from '../core/vdom';
-import { useStore } from '../core/hooks';
+import { usePulse } from '../core/hooks';
 import { Button } from './Button';
+import { userStore } from '../store';
 
 export const UserProfile: FunctionalComponent = () => {
-  const [userName, setUserName] = useStore('userName');
+  const [userName, setUserName] = usePulse('userName', userStore);
 
   const changeName = () => {
     const newName = prompt('Enter your name:', userName);

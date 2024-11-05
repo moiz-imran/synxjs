@@ -1,11 +1,12 @@
 // src/components/Counter.tsx
 
 import { FunctionalComponent } from '../core/vdom';
-import { useStore } from '../core/hooks';
+import { usePulse } from '../core/hooks';
+import { appStore } from '../store';
 import { Button } from './Button';
 
 export const Counter: FunctionalComponent = () => {
-  const [count, setCount] = useStore('count');
+  const [count, setCount] = usePulse('count', appStore);
 
   const increment = () => {
     setCount((c) => c + 1);

@@ -1,8 +1,7 @@
 // src/core/hooks.ts
 
 import { effect } from './reactive';
-import { store } from '../store';
-import { renderApp } from './renderer';
+import { PulseStore } from './store';
 
 /**
  * Represents a setter function for state updates.
@@ -37,28 +36,28 @@ export function runHooks() {
 }
 
 /**
- * Custom hook to manage local component state.
- * @template S - The type of the state.
- * @param initialState - The initial state value or a function returning the initial state.
+ * useState Hook
+ *
+ * @template T - The type of the state.
+ * @param initialValue - The initial state value.
  * @returns A tuple containing the current state and a setter function.
  */
-export function useState<S>(initialState: S | (() => S)): [S, SetState<S>] {
+export function useState<T>(initialValue: T): [T, (newValue: T) => void] {
   const hookIndex = currentHook++;
-  if (!hooks[hookIndex]) {
-    hooks[hookIndex] = {
-      state:
-        typeof initialState === 'function'
-          ? (initialState as () => S)()
-          : initialState,
-    };
+
+  // Initialize state if it doesn't exist
+  if (hooks[hookIndex] === undefined) {
+    hooks[hookIndex] = initialValue;
   }
 
-  const setState: SetState<S> = (action) => {
-    const currentState = hooks[hookIndex].state;
-    hooks[hookIndex].state =
-      typeof action === 'function'
-        ? (action as (prev: S) => S)(currentState)
-        : action;
+  /**
+   * Setter function to update the state.
+   * Triggers a re-render of the root component.
+   *
+   * @param newValue - The new state value.
+   */
+  const setState = (newValue: T) => {
+    hooks[hookIndex] = newValue;
     // Trigger a re-render
     const root = document.getElementById('root');
     if (root && typeof (root as any).__appRender === 'function') {
@@ -66,93 +65,84 @@ export function useState<S>(initialState: S | (() => S)): [S, SetState<S>] {
     }
   };
 
-  return [hooks[hookIndex].state, setState];
+  return [hooks[hookIndex], setState];
 }
 
 /**
- * Custom hook to handle side effects.
- * @param callback - The effect function to execute.
- * @param deps - The dependency array to control when the effect runs.
+ * useEffect Hook
+ *
+ * @param effect - The effect callback to execute.
+ * @param deps - An array of dependencies for the effect.
  */
 export function useEffect(
-  callback: () => (() => void) | void,
-  deps: any[] | undefined,
+  effect: () => void | (() => void),
+  deps?: any[],
 ): void {
   const hookIndex = currentHook++;
-  if (!hooks[hookIndex]) {
-    hooks[hookIndex] = {
-      deps: deps ? [...deps] : undefined,
-      cleanup: undefined,
-    };
-    // Register the effect
-    hooks[hookIndex].cleanup = effect(() => {
-      const hasChanged = !deps
-        ? true
-        : deps.some((dep, i) => !Object.is(dep, hooks[hookIndex].deps[i]));
-      if (hasChanged) {
-        if (hooks[hookIndex].cleanup) {
-          hooks[hookIndex].cleanup();
-        }
-        const cleanup = callback();
-        if (typeof cleanup === 'function') {
-          hooks[hookIndex].cleanup = cleanup;
-        }
-        if (deps) {
-          hooks[hookIndex].deps = [...deps];
-        }
-      }
-    });
+
+  const oldDeps = hooks[hookIndex]?.deps;
+  const hasChanged =
+    !oldDeps || !deps || deps.some((dep, i) => dep !== oldDeps[i]);
+
+  if (hasChanged) {
+    // If there's a previous cleanup, call it
+    if (hooks[hookIndex]?.cleanup) {
+      hooks[hookIndex].cleanup();
+    }
+
+    // Execute the effect and store the cleanup if provided
+    const cleanup = effect();
+    hooks[hookIndex] = { deps, cleanup };
   }
 }
 
 /**
- * useStore Hook
+ * usePulse Hook
  *
- * @template K - The key of the store to select.
- * @param selector - The key of the store property to subscribe to.
+ * @template K - The key of the pulse to select.
+ * @template T - The type of the PulseStore's state.
+ * @param selector - The key of the pulse property to subscribe to.
+ * @param store - The PulseStore instance to interact with.
  * @returns A tuple containing the current value and a setter function.
  */
-export function useStore<K extends keyof typeof store>(
+export function usePulse<K extends keyof T, T extends Record<string, any>>(
   selector: K,
-): [(typeof store)[K], Setter<(typeof store)[K]>] {
-  const hookIndex = currentHook++;
+  store: PulseStore<T>,
+): [T[K], Setter<T[K]>] {
+  // Initialize local state with the current pulse value
+  const [value, setValue] = useState<T[K]>(store.getPulses()[selector]);
 
-  if (!hooks[hookIndex]) {
-    // Initialize hook state with the current store value
-    hooks[hookIndex] = {
-      value: store[selector],
-      cleanup: undefined,
+  useEffect(() => {
+    // Define a listener that updates the local state if the relevant pulse changes
+    const handleChange = (changedKeys: Set<string | symbol>) => {
+      if (changedKeys.has(selector.toString())) {
+        setValue(store.getPulses()[selector]);
+      }
     };
 
-    // Set up reactive effect
-    hooks[hookIndex].cleanup = effect(() => {
-      const newValue = store[selector];
-      if (!Object.is(newValue, hooks[hookIndex].value)) {
-        hooks[hookIndex].value = newValue;
-        // Trigger a re-render
-        const root = document.getElementById('root');
-        if (root && typeof (root as any).__appRender === 'function') {
-          (root as any).__appRender();
-        }
-      }
-    });
-  }
+    // Subscribe to PulseStore changes
+    const unsubscribe = store.subscribe(handleChange);
 
-  // Define the setter function
-  const setValue: Setter<(typeof store)[K]> = (newValue) => {
+    // Cleanup on unmount
+    return () => {
+      // unsubscribe();
+    };
+  }, [selector, store]);
+
+  // Setter function to update the pulse
+  const setter: Setter<T[K]> = (newValue) => {
     if (typeof newValue === 'function') {
-      // If newValue is a function, call it with the current value
-      const updater = newValue as (prev: (typeof store)[K]) => (typeof store)[K];
-      store[selector] = updater(store[selector]);
+      const updater = newValue as (prev: T[K]) => T[K];
+      store.setPulses({
+        [selector]: updater(store.getPulses()[selector]),
+      } as Pick<T, K>);
     } else {
-      // If newValue is a direct value, assign it to the store
-      store[selector] = newValue;
+      store.setPulses({ [selector]: newValue } as Pick<T, K>);
     }
   };
 
-  return [hooks[hookIndex].value, setValue];
+  return [value, setter];
 }
-
 
 /**
  * Optional: Custom hook to memoize expensive computations.
