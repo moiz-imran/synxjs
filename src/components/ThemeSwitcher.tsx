@@ -1,67 +1,35 @@
 // src/components/ThemeSwitcher.tsx
 
-import { Component } from '../core/component';
-import { VNode } from '../core/vdom';
+import { useEffect, usePulse } from '../core/hooks';
+import { FunctionalComponent } from '../core/vdom';
 import { appStore } from '../store';
 
-interface ThemeSwitcherProps {
-  // The unique key is handled externally; no need to include it here
-}
+export const ThemeSwitcher: FunctionalComponent = () => {
+  const [theme, setTheme] = usePulse('theme', appStore);
 
-interface ThemeSwitcherState {
-  currentTheme: 'light' | 'dark';
-}
-
-export class ThemeSwitcher extends Component<
-  ThemeSwitcherProps,
-  ThemeSwitcherState
-> {
-  protected initialState(): ThemeSwitcherState {
-    return {
-      currentTheme: appStore.getPulses().theme,
+  useEffect(() => {
+    const applyTheme = () => {
+      const root = document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
     };
-  }
 
-  constructor(props: ThemeSwitcherProps) {
-    super(props);
-  }
+    applyTheme();
+  }, [theme]);
 
-  componentDidMount(): void {
-    // Subscribe to the 'theme' property in the store
-    this.subscribeToStore(() => {
-      this.setState({ currentTheme: appStore.getPulses().theme });
-      this.applyTheme();
-    });
-    this.applyTheme();
-  }
-
-  toggleTheme = () => {
-    appStore.setPulses({
-      theme: appStore.getPulses().theme === 'light' ? 'dark' : 'light',
-    });
-  };
-
-  applyTheme(): void {
-    const root = document.documentElement;
-    if (this.state.currentTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }
-
-  render(): VNode {
-    return (
-      <button
-        className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-          this.state.currentTheme === 'light'
-            ? 'bg-gray-800 text-white'
-            : 'bg-yellow-300 text-black'
-        }`}
-        onClick={this.toggleTheme}
-      >
-        Switch to {this.state.currentTheme === 'light' ? 'Dark' : 'Light'} Mode
-      </button>
-    );
-  }
-}
+  return (
+    <button
+      className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+        theme === 'light'
+          ? 'bg-gray-800 text-white'
+          : 'bg-yellow-300 text-black'
+      }`}
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+    >
+      Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
+    </button>
+  );
+};

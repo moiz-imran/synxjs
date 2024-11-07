@@ -1,18 +1,22 @@
 // src/core/renderer.ts
 
 import { VNode, FunctionalComponent } from './vdom';
-import { Component, ComponentProps } from './component';
+import {
+  resetHooks,
+  setCurrentComponent,
+  resetCurrentComponent,
+  FunctionalComponentInstance,
+} from './hooks';
 import { App } from '../components/App';
-import { resetHooks, runHooks } from './hooks';
+import { diff } from './diff'; // Import diff functions
 
 /**
- * Type representing a component class with props P and state S.
+ * Hook Map to store functional component instances associated with their VNodes.
  */
-type ComponentClass<P extends ComponentProps, S> = new (
-  props: P,
-) => Component<P, S>;
-// Cache to store component instances associated with their VNodes
-const componentInstanceMap = new WeakMap<VNode & object, Component<any, any>>();
+const functionalComponentInstanceMap = new WeakMap<
+  VNode & object,
+  FunctionalComponentInstance
+>();
 
 let rootElement: HTMLElement | null = null;
 let currentVNode: VNode | string | null = null;
@@ -25,24 +29,25 @@ let currentVNode: VNode | string | null = null;
 export function renderApp(container: HTMLElement, appVNode: VNode): void {
   rootElement = container;
   currentVNode = appVNode;
-  const dom = render(appVNode);
-  if (dom) {
-    container.innerHTML = '';
-    container.appendChild(dom);
-  }
 
-  // Attach a render function to the root for re-rendering
-  (container as any).__appRender = () => {
-    resetHooks(); // Reset hooks before each render
-    const newVNode = App({});
-    const newDom = render(newVNode);
-    if (newDom) {
-      container.innerHTML = '';
-      container.appendChild(newDom);
-    }
-    runHooks(); // Process any hook cleanup or side-effects
-    currentVNode = newVNode;
-  };
+  // Create the root functional component instance
+  const rootFunctionalComponentInstance = createFunctionalComponentInstance(
+    appVNode,
+    App,
+  );
+  functionalComponentInstanceMap.set(
+    appVNode as VNode & object,
+    rootFunctionalComponentInstance,
+  );
+
+  // Initial render via root functional component
+  const newDom = render(rootFunctionalComponentInstance.render());
+  if (newDom) {
+    container.innerHTML = '';
+    container.appendChild(newDom);
+    rootFunctionalComponentInstance.dom = newDom; // Assign the DOM node to the instance
+  }
+  currentVNode = rootFunctionalComponentInstance.vnode;
 }
 
 /**
@@ -50,81 +55,96 @@ export function renderApp(container: HTMLElement, appVNode: VNode): void {
  * @param node - The Virtual DOM node or string.
  * @returns The actual DOM node.
  */
-export function render(node: VNode | string | null): HTMLElement | Text | null {
+export function render(
+  node: VNode | string | number | null,
+): HTMLElement | Text | null {
   if (node === null) {
+    console.warn('render: Attempted to render a null vnode.');
     return null;
   }
 
   if (typeof node === 'string' || typeof node === 'number') {
+    console.log('render: Rendering text node:', node);
     return document.createTextNode(node.toString());
   }
 
-  // Check if the node is already associated with a component instance
-  if (componentInstanceMap.has(node)) {
-    const componentInstance = componentInstanceMap.get(node)!;
-    const childVNode = componentInstance.render();
-    const dom = render(childVNode);
-    return dom;
-  }
-
-  // If node.type is a class-based component
-  if (
-    typeof node.type === 'function' &&
-    node.type.prototype instanceof Component
-  ) {
-    const ComponentClass = node.type as ComponentClass<any, any>;
-
-    // Create a new component instance and cache it
-    const componentInstance = new ComponentClass(node.props);
-    componentInstanceMap.set(node, componentInstance);
-
-    const childVNode = componentInstance.render();
-    const dom = render(childVNode);
-    return dom;
+  // Check if the node is already associated with a functional component instance
+  if (functionalComponentInstanceMap.has(node)) {
+    const functionalComponentInstance =
+      functionalComponentInstanceMap.get(node)!;
+    const newChildVNode = functionalComponentInstance.render();
+    if (functionalComponentInstance.dom && newChildVNode) {
+      // Perform diff between new VNode and old VNode
+      const parent = functionalComponentInstance.dom.parentNode as HTMLElement;
+      if (parent) {
+        const index = Array.from(parent.childNodes).indexOf(
+          functionalComponentInstance.dom,
+        );
+        if (index !== -1) {
+          console.log(
+            `render: Performing diff for component at index ${index}`,
+          );
+          diff(newChildVNode, functionalComponentInstance.vnode, parent, index);
+          functionalComponentInstance.vnode = newChildVNode as VNode; // Update the vnode reference
+          functionalComponentInstance.dom = parent.childNodes[index] as
+            | HTMLElement
+            | Text; // Update dom reference
+        } else {
+          console.error('render: DOM node not found in parent.');
+        }
+      }
+    }
+    return functionalComponentInstance.dom;
   }
 
   // If node.type is a functional component
   if (typeof node.type === 'function') {
     const FunctionalComp = node.type as FunctionalComponent<any>;
-    const childVNode = FunctionalComp(node.props);
-    const dom = render(childVNode);
-    return dom;
+
+    // Create a new FunctionalComponentInstance and cache it
+    const functionalComponentInstance = createFunctionalComponentInstance(
+      node,
+      FunctionalComp,
+    );
+    functionalComponentInstanceMap.set(node, functionalComponentInstance);
+
+    // Render the functional component
+    const childVNode = functionalComponentInstance.render();
+    const childDom = render(childVNode);
+    if (childDom) {
+      functionalComponentInstance.dom = childDom;
+    }
+    return childDom;
   }
 
   // node.type is an intrinsic element
   const element = document.createElement(node.type as string);
 
-  // Ensure props is an object
-  const props = node.props || {};
-
   // Set props
+  const props = node.props || {};
   for (const [key, value] of Object.entries(props)) {
     if (key.startsWith('on') && typeof value === 'function') {
       const event = key.slice(2).toLowerCase();
       element.addEventListener(event, value);
+    } else if (key === 'className') {
+      element.setAttribute('class', value);
+    } else if (key === 'style' && typeof value === 'object') {
+      Object.assign(element.style, value);
     } else {
-      // Handle special cases like 'className' -> 'class'
-      if (key === 'className') {
-        element.setAttribute('class', value);
-      } else if (key === 'style' && typeof value === 'object') {
-        // Handle inline styles
-        Object.assign(element.style, value);
-      } else {
-        element.setAttribute(key, value);
-      }
+      element.setAttribute(key, value);
     }
   }
 
   // Render and append children
-  if (typeof node.children === 'string') {
-    const textNode = document.createTextNode(node.children);
+  if (typeof node.children === 'string' || typeof node.children === 'number') {
+    const textNode = document.createTextNode(node.children.toString());
     element.appendChild(textNode);
   } else if (Array.isArray(node.children)) {
-    node.children.forEach((child) => {
+    node.children.forEach((child, idx) => {
       if (child === undefined || child === null) return; // Skip null/undefined
       const childDom =
-        typeof child === 'string'
-          ? document.createTextNode(child)
+        typeof child === 'string' || typeof child === 'number'
+          ? document.createTextNode(String(child))
           : render(child);
       if (childDom) {
         element.appendChild(childDom);
@@ -132,13 +152,40 @@ export function render(node: VNode | string | null): HTMLElement | Text | null {
     });
   } else if (node.children) {
     const childDom =
-      typeof node.children === 'string'
-        ? document.createTextNode(node.children)
+      typeof node.children === 'string' || typeof node.children === 'number'
+        ? document.createTextNode(String(node.children))
         : render(node.children);
     if (childDom) {
       element.appendChild(childDom);
     }
   }
 
+  console.log('render: Created element', element);
   return element;
+}
+
+/**
+ * Factory function to create a FunctionalComponentInstance.
+ * @param node - The Virtual DOM node.
+ * @param FunctionalComp - The functional component to render.
+ * @returns A fully constructed FunctionalComponentInstance.
+ */
+function createFunctionalComponentInstance(
+  node: VNode,
+  FunctionalComp: FunctionalComponent<any>,
+): FunctionalComponentInstance {
+  const instance: FunctionalComponentInstance = {
+    hooks: [],
+    currentHook: 0,
+    vnode: node,
+    dom: null,
+    render: () => {
+      setCurrentComponent(instance); // Push to hook stack
+      resetHooks(); // Reset hooks before each render
+      const childVNode = FunctionalComp(node?.props);
+      resetCurrentComponent(); // Pop from hook stack
+      return childVNode;
+    },
+  };
+  return instance;
 }

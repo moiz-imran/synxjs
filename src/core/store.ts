@@ -1,15 +1,18 @@
 // src/core/PulseStore.ts
 
-import { reactive, effect } from './reactive';
+import { reactive } from './reactive';
 
-type Listener = (changedKeys: Set<string | symbol>) => void;
+type Listener<K extends keyof T, T extends Record<string, any>> = (
+  changedKeys: Set<K>,
+) => void;
 
 /**
  * PulseStore manages a collection of pulses within the Nova system.
  */
 export class PulseStore<T extends Record<string, any>> {
   private pulses: T;
-  private listeners: Listener[] = [];
+  private listeners: Map<keyof T, Set<(changedKeys: Set<keyof T>) => void>> =
+    new Map();
 
   /**
    * Initializes the PulseStore with the provided initial pulses.
@@ -18,6 +21,9 @@ export class PulseStore<T extends Record<string, any>> {
   constructor(initialPulses: T) {
     // Make pulses reactive
     this.pulses = reactive(initialPulses);
+    Object.keys(initialPulses).forEach((key) => {
+      this.listeners.set(key as keyof T, new Set());
+    });
   }
 
   /**
@@ -33,9 +39,20 @@ export class PulseStore<T extends Record<string, any>> {
    * @param newPulses - Partial pulses to merge with the existing state.
    */
   setPulses<K extends keyof T>(newPulses: Pick<T, K>): void {
-    Object.assign(this.pulses, newPulses);
-    const changedKeys = new Set(Object.keys(newPulses));
+    const changedKeys = new Set<K>();
 
+    // Identify changed keys.
+    Object.keys(newPulses).forEach((key) => {
+      const typedKey = key as K;
+      if (this.pulses[typedKey] !== newPulses[typedKey]) {
+        changedKeys.add(typedKey);
+      }
+    });
+
+    // Update pulses.
+    Object.assign(this.pulses, newPulses);
+
+    // Notify listeners if there are changes.
     if (changedKeys.size > 0) {
       this.notify(changedKeys);
     }
@@ -46,10 +63,18 @@ export class PulseStore<T extends Record<string, any>> {
    * @param listener - The callback to invoke when pulses change.
    * @returns A function to unsubscribe the listener.
    */
-  subscribe(listener: Listener): () => void {
-    this.listeners.push(listener);
+  subscribe<K extends keyof T>(
+    key: K,
+    listener: (changedKeys: Set<K>) => void,
+  ): () => void {
+    const listeners = this.listeners.get(key);
+    if (listeners) {
+      listeners.add(listener as (changedKeys: Set<keyof T>) => void);
+    }
     return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
+      if (listeners) {
+        listeners.delete(listener as (changedKeys: Set<keyof T>) => void);
+      }
     };
   }
 
@@ -57,7 +82,12 @@ export class PulseStore<T extends Record<string, any>> {
    * Notifies all subscribed listeners about pulse changes.
    * @param changedKeys - The set of keys that have changed.
    */
-  private notify(changedKeys: Set<string | symbol>): void {
-    this.listeners.forEach((listener) => listener(changedKeys));
+  private notify(changedKeys: Set<keyof T>) {
+    changedKeys.forEach((key) => {
+      const listeners = this.listeners.get(key);
+      if (listeners) {
+        listeners.forEach((listener) => listener(changedKeys));
+      }
+    });
   }
 }

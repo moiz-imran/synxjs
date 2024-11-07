@@ -1,138 +1,157 @@
 // src/core/vdom.ts
 
-import { Component, ComponentProps } from './component';
+/**
+ * **Virtual DOM (VNode) Definition and Factory Function**
+ *
+ * This module defines the structure of Virtual DOM nodes (VNodes) and provides a
+ * factory function `createElement` to create these nodes. It supports both intrinsic
+ * DOM elements (like 'div', 'button') and functional components.
+ */
 
 /**
- * Type representing a functional component.
- * @template P - The type of props.
+ * **VNode Type**
+ *
+ * Represents a Virtual DOM node.
+ *
+ * - `type`: Can be either a string (for intrinsic DOM elements) or a `FunctionalComponent`.
+ * - `props`: An object containing properties/attributes of the element.
+ * - `children`: Can be a single `VNode`, a string/number (for text nodes), or an array of `VNodes`.
  */
-export type FunctionalComponent<P extends ComponentProps = ComponentProps> = (props: P) => VNode | null;
+export type VNode = {
+  type: string | FunctionalComponent<any>;
+  props?: Record<string, any>;
+  children?: VNode[] | string | number;
+};
 
 /**
- * Interface representing a Virtual DOM node for intrinsic elements.
- * @template K - The intrinsic element tag name.
+ * **FunctionalComponent Type**
+ *
+ * Represents a functional component.
+ *
+ * - Accepts props of type `P`.
+ * - Returns a `VNode`, string, number, or `null`.
+ *
+ * This type allows for strong typing of component props and ensures that components
+ * return valid VNodes for rendering.
  */
-interface IntrinsicVNode<K extends keyof JSX.IntrinsicElements> {
-  type: K;
-  props: JSX.IntrinsicElements[K];
-  children: string | VNode[];
-  key?: string;
-}
-
-/**
- * Interface representing a Virtual DOM node for class-based components.
- * @template P - The type of props.
- */
-interface ClassComponentVNode<P extends ComponentProps = ComponentProps> {
-  type: new (props: P) => Component<P, any>;
-  props: P;
-  children: string | VNode[];
-  key?: string;
-}
-
-/**
- * Interface representing a Virtual DOM node for functional components.
- * @template P - The type of props.
- */
-interface FunctionalComponentVNode<P extends ComponentProps = ComponentProps> {
-  type: FunctionalComponent<P>;
-  props: P;
-  children: string | VNode[];
-  key?: string;
-}
-
-/**
- * Union type for all possible Virtual DOM nodes.
- */
-export type VNode = IntrinsicVNode<keyof JSX.IntrinsicElements> | ClassComponentVNode<any> | FunctionalComponentVNode<any> | null;
-
-/**
- * Creates a Virtual DOM node for intrinsic elements.
- * @template K - The intrinsic element tag name.
- * @param type - The tag name of the intrinsic element.
- * @param props - The props specific to the intrinsic element.
- * @param children - The children of the element.
- * @returns A Virtual DOM node.
- */
-export function createElement<K extends keyof JSX.IntrinsicElements>(
-  type: K,
-  props: JSX.IntrinsicElements[K],
-  ...children: Array<string | VNode>
-): IntrinsicVNode<K>;
-
-/**
- * Creates a Virtual DOM node for class-based components.
- * @template P - The type of props.
- * @param type - The class-based component.
- * @param props - The props for the component.
- * @param children - The children of the component.
- * @returns A Virtual DOM node.
- */
-export function createElement<P extends ComponentProps>(
-  type: new (props: P) => Component<P, any>,
+export type FunctionalComponent<P = {}> = (
   props: P,
-  ...children: Array<string | VNode>
-): ClassComponentVNode<P>;
+) => VNode | string | number | null;
 
 /**
- * Creates a Virtual DOM node for functional components.
- * @template P - The type of props.
- * @param type - The functional component.
- * @param props - The props for the component.
- * @param children - The children of the component.
- * @returns A Virtual DOM node.
+ * **Fragment Type**
+ *
+ * Represents a Fragment, allowing for grouping of children without adding extra nodes to the DOM.
+ *
+ * Usage in JSX:
+ * ```jsx
+ * <>
+ *   <Child1 />
+ *   <Child2 />
+ * </>
+ * ```
+ *
+ * The above JSX is transpiled to use the `Fragment` type.
  */
-export function createElement<P extends ComponentProps>(
-  type: FunctionalComponent<P>,
-  props: P,
-  ...children: Array<string | VNode>
-): FunctionalComponentVNode<P>;
+export const Fragment = Symbol('Fragment');
 
 /**
- * Implementation of the createElement function.
- * @param type - The type of the element or component.
- * @param props - The props for the element or component.
- * @param children - The children elements or text.
- * @returns A Virtual DOM node.
+ * **createElement Function**
+ *
+ * Factory function to create Virtual DOM nodes (VNodes).
+ *
+ * **Parameters:**
+ *
+ * - `type`: The type of the element. Can be:
+ *   - A string representing an intrinsic DOM element (e.g., 'div', 'button').
+ *   - A `FunctionalComponent` (i.e., a function representing a component).
+ *   - The `Fragment` symbol for grouping children without adding extra nodes.
+ * - `props`: An object containing properties/attributes of the element. Defaults to an empty object.
+ * - `children`: The children of the element. Can be multiple arguments representing nested elements or text.
+ *
+ * **Returns:**
+ *
+ * - A `VNode` object representing the Virtual DOM node.
+ *
+ * **Usage:**
+ *
+ * ```javascript
+ * const vnode = createElement('div', { id: 'container' },
+ *   createElement('h1', {}, 'Hello, World!'),
+ *   createElement(Button, { label: 'Click Me', onClick: handleClick })
+ * );
+ * ```
  */
-export function createElement(
-  type: keyof JSX.IntrinsicElements | FunctionalComponent<any> | (new (props: any) => Component<any, any>),
-  props: { [key: string]: any } | null,
-  ...children: Array<string | VNode>
+export function createElement<P>(
+  type: string | FunctionalComponent<P> | typeof Fragment,
+  props: P = {} as P,
+  ...children: any[]
 ): VNode {
-  // Ensure props is an object
-  props = props || {};
-
-  // Extract 'key' from props
-  const { key, ...restProps } = props;
-
-  // Flatten the children array to prevent nested arrays
-  const flatChildren: Array<string | VNode> = [];
-
-  const flatten = (
-    items: Array<string | VNode | Array<string | VNode>>,
-  ): void => {
-    items.forEach((item) => {
-      if (Array.isArray(item)) {
-        flatten(item); // Recursively flatten nested arrays
-      } else {
-        flatChildren.push(item);
-      }
-    });
-  };
-
-  flatten(children);
-
-  // Determine if children should be a single string or an array
-  const finalChildren: string | VNode[] =
-    flatChildren.length === 1 && typeof flatChildren[0] === 'string'
-      ? flatChildren[0]
-      : flatChildren as VNode[];
+  // Handle Fragment type by directly returning its children
+  if (type === Fragment) {
+    return {
+      type: typeof Fragment,
+      props: {},
+      children: children.length === 1 ? children[0] : children,
+    };
+  }
 
   return {
     type,
-    props: restProps, // Pass the rest of the props, excluding 'key'
-    children: finalChildren,
-    key, // Include 'key' separately in the VNode
+    props: props as Record<string, any>,
+    children: children.length === 1 ? children[0] : children,
   };
+}
+
+/**
+ * **isVNode Function**
+ *
+ * Type guard to determine if a value is a `VNode`.
+ *
+ * **Parameters:**
+ *
+ * - `node`: The value to check.
+ *
+ * **Returns:**
+ *
+ * - `true` if `node` is a `VNode`, `false` otherwise.
+ */
+export function isVNode(node: any): node is VNode {
+  return typeof node === 'object' && node !== null && 'type' in node;
+}
+
+/**
+ * **isFunctionalComponent Function**
+ *
+ * Type guard to determine if a type is a `FunctionalComponent`.
+ *
+ * **Parameters:**
+ *
+ * - `type`: The type to check.
+ *
+ * **Returns:**
+ *
+ * - `true` if `type` is a `FunctionalComponent`, `false` otherwise.
+ */
+export function isFunctionalComponent(
+  type: any,
+): type is FunctionalComponent<any> {
+  return typeof type === 'function';
+}
+
+/**
+ * **isFragment Function**
+ *
+ * Type guard to determine if a VNode is a Fragment.
+ *
+ * **Parameters:**
+ *
+ * - `node`: The `VNode` to check.
+ *
+ * **Returns:**
+ *
+ * - `true` if `node` is a Fragment, `false` otherwise.
+ */
+export function isFragment(node: VNode): boolean {
+  return node.type === typeof Fragment;
 }
