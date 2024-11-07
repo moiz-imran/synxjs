@@ -83,11 +83,20 @@ export class PulseStore<T extends Record<string, any>> {
    * @param changedKeys - The set of keys that have changed.
    */
   private notify(changedKeys: Set<keyof T>) {
-    changedKeys.forEach((key) => {
-      const listeners = this.listeners.get(key);
-      if (listeners) {
-        listeners.forEach((listener) => listener(changedKeys));
-      }
+    // Batch notifications
+    queueMicrotask(() => {
+      const notifiedListeners = new Set();
+      changedKeys.forEach((key) => {
+        const listeners = this.listeners.get(key);
+        if (listeners) {
+          listeners.forEach((listener) => {
+            if (!notifiedListeners.has(listener)) {
+              listener(changedKeys);
+              notifiedListeners.add(listener);
+            }
+          });
+        }
+      });
     });
   }
 }

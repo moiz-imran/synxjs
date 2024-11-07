@@ -4,6 +4,9 @@ import { FunctionalComponentInstance } from './hooks';
 import { diff } from './diff';
 import { VNode } from './vdom';
 
+let isScheduled = false;
+let pendingUpdates = new Set<FunctionalComponentInstance>();
+
 /**
  * Schedules an update for a functional component instance.
  * @param instance - The functional component instance to update.
@@ -13,25 +16,26 @@ export function scheduleUpdate(
   instance: FunctionalComponentInstance,
   newVNode: VNode | string | number | null,
 ) {
-  if (!instance.dom) {
-    console.error('scheduleUpdate: Instance has no DOM node.');
-    return;
-  }
+  pendingUpdates.add(instance);
 
-  const parent = instance.dom.parentNode as HTMLElement;
-  if (!parent) {
-    console.error('scheduleUpdate: Instance DOM node has no parent.');
-    return;
-  }
+  if (!isScheduled) {
+    isScheduled = true;
+    queueMicrotask(() => {
+      isScheduled = false;
+      // Process all pending updates in one batch
+      pendingUpdates.forEach(inst => {
+        if (!inst.dom) return;
+        const parent = inst.dom.parentNode as HTMLElement;
+        if (!parent) return;
 
-  const index = Array.from(parent.childNodes).indexOf(instance.dom);
-  if (index === -1) {
-    console.error('scheduleUpdate: Instance DOM node not found in parent.');
-    return;
-  }
+        const index = Array.from(parent.childNodes).indexOf(inst.dom);
+        if (index === -1) return;
 
-  console.log(`scheduleUpdate: Updating DOM at parent index ${index}`);
-  diff(newVNode, instance.vnode, parent, index);
-  instance.vnode = newVNode as VNode;
-  instance.dom = parent.childNodes[index] as HTMLElement | Text;
+        diff(newVNode, inst.vnode, parent, index);
+        inst.vnode = newVNode as VNode;
+        inst.dom = parent.childNodes[index] as HTMLElement | Text;
+      });
+      pendingUpdates.clear();
+    });
+  }
 }
