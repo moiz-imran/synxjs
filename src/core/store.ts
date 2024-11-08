@@ -2,17 +2,12 @@
 
 import { reactive } from './reactive';
 
-type Listener<K extends keyof T, T extends Record<string, any>> = (
-  changedKeys: Set<K>,
-) => void;
-
 /**
  * PulseStore manages a collection of pulses within the Nova system.
  */
 export class PulseStore<T extends Record<string, any>> {
   private pulses: T;
-  private listeners: Map<keyof T, Set<(changedKeys: Set<keyof T>) => void>> =
-    new Map();
+  private subscribers: Map<keyof T, Set<() => void>>;
 
   /**
    * Initializes the PulseStore with the provided initial pulses.
@@ -21,9 +16,26 @@ export class PulseStore<T extends Record<string, any>> {
   constructor(initialPulses: T) {
     // Make pulses reactive
     this.pulses = reactive(initialPulses);
-    Object.keys(initialPulses).forEach((key) => {
-      this.listeners.set(key as keyof T, new Set());
-    });
+    this.subscribers = new Map();
+  }
+
+  /**
+   * Retrieves a single pulse.
+   * @param key - The key of the pulse to retrieve.
+   * @returns The value of the pulse.
+   */
+  getPulse(key: keyof T): T[keyof T] {
+    return this.pulses[key];
+  }
+
+  /**
+   * Updates a single pulse.
+   * @param key - The key of the pulse to update.
+   * @param value - The new value of the pulse.
+   */
+  setPulse(key: keyof T, value: T[keyof T]): void {
+    this.pulses[key] = value;
+    this.notify(new Set([key]));
   }
 
   /**
@@ -63,19 +75,22 @@ export class PulseStore<T extends Record<string, any>> {
    * @param listener - The callback to invoke when pulses change.
    * @returns A function to unsubscribe the listener.
    */
-  subscribe<K extends keyof T>(
-    key: K,
-    listener: (changedKeys: Set<K>) => void,
-  ): () => void {
-    const listeners = this.listeners.get(key);
-    if (listeners) {
-      listeners.add(listener as (changedKeys: Set<keyof T>) => void);
+  subscribe(key: keyof T, callback: () => void): void {
+    if (!this.subscribers.has(key)) {
+      this.subscribers.set(key, new Set());
     }
-    return () => {
-      if (listeners) {
-        listeners.delete(listener as (changedKeys: Set<keyof T>) => void);
-      }
-    };
+    this.subscribers.get(key)!.add(callback);
+  }
+
+  /**
+   * Unsubscribes a listener from pulse changes.
+   * @param listener - The callback to remove from the listeners.
+   */
+  unsubscribe(key: keyof T, callback: () => void): void {
+    const subs = this.subscribers.get(key);
+    if (subs) {
+      subs.delete(callback);
+    }
   }
 
   /**
@@ -83,20 +98,13 @@ export class PulseStore<T extends Record<string, any>> {
    * @param changedKeys - The set of keys that have changed.
    */
   private notify(changedKeys: Set<keyof T>) {
-    // Batch notifications
-    queueMicrotask(() => {
-      const notifiedListeners = new Set();
-      changedKeys.forEach((key) => {
-        const listeners = this.listeners.get(key);
-        if (listeners) {
-          listeners.forEach((listener) => {
-            if (!notifiedListeners.has(listener)) {
-              listener(changedKeys);
-              notifiedListeners.add(listener);
-            }
-          });
-        }
-      });
+    changedKeys.forEach((key) => {
+      const listenersForKey = this.subscribers.get(key);
+      if (listenersForKey) {
+        listenersForKey.forEach((listener) => {
+          listener();
+        });
+      }
     });
   }
 }

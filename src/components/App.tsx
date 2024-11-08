@@ -7,11 +7,9 @@ import { Counter } from './Counter';
 import { UserProfile } from './UserProfile';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { Alert } from './Alert';
-import { Button } from './Button';
 
 export const App: FunctionalComponent = () => {
   const [theme] = usePulse('theme', appStore);
-  const [, setAlertVisible] = usePulse('alertVisible', appStore);
 
   return (
     <div
@@ -26,12 +24,6 @@ export const App: FunctionalComponent = () => {
       <main className="space-y-6">
         <UserProfile />
         <Counter />
-        <Button
-          label="Show Alert"
-          onClick={() => setAlertVisible(true)}
-        >
-          Show Alert
-        </Button>
         <Alert message="This is a success alert!" type="success" dismissible />
       </main>
 

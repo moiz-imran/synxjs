@@ -1,11 +1,17 @@
 // src/core/scheduler.ts
 
-import { FunctionalComponentInstance } from './hooks';
+import {
+  FunctionalComponentInstance,
+  resetCurrentComponent,
+  runEffects,
+  setCurrentComponent,
+} from './hooks';
 import { diff } from './diff';
 import { VNode } from './vdom';
 
+const pendingUpdates = new Set<FunctionalComponentInstance>();
 let isScheduled = false;
-let pendingUpdates = new Set<FunctionalComponentInstance>();
+let isRendering = false;
 
 /**
  * Schedules an update for a functional component instance.
@@ -16,26 +22,63 @@ export function scheduleUpdate(
   instance: FunctionalComponentInstance,
   newVNode: VNode | string | number | null,
 ) {
-  pendingUpdates.add(instance);
+  if (instance) {
+    pendingUpdates.add(instance);
+  }
 
   if (!isScheduled) {
     isScheduled = true;
     queueMicrotask(() => {
       isScheduled = false;
-      // Process all pending updates in one batch
-      pendingUpdates.forEach(inst => {
-        if (!inst.dom) return;
-        const parent = inst.dom.parentNode as HTMLElement;
-        if (!parent) return;
 
-        const index = Array.from(parent.childNodes).indexOf(inst.dom);
-        if (index === -1) return;
+      if (isRendering) {
+        scheduleUpdate(instance, newVNode);
+        return;
+      }
 
-        diff(newVNode, inst.vnode, parent, index);
-        inst.vnode = newVNode as VNode;
-        inst.dom = parent.childNodes[index] as HTMLElement | Text;
-      });
+      isRendering = true;
+      const updates = Array.from(pendingUpdates);
       pendingUpdates.clear();
+
+      try {
+        updates.forEach((inst) => {
+          if (!inst.dom) return;
+          const parent = inst.dom.parentNode as HTMLElement;
+          if (!parent) return;
+
+          const index = Array.from(parent.childNodes).indexOf(inst.dom);
+          if (index === -1) return;
+
+          try {
+            setCurrentComponent(inst);
+            inst.currentHook = 0;
+
+            // Get current state before update
+            const oldVNode = inst.vnode;
+            const oldDom = inst.dom;
+
+            // Render new state
+            const updatedVNode = inst.render();
+
+            // Update the DOM content directly if it's a text update
+            if (oldDom instanceof Text && typeof updatedVNode === 'string') {
+              oldDom.textContent = updatedVNode;
+            } else {
+              // Otherwise use diff for structural changes
+              diff(updatedVNode, oldVNode, parent, index);
+            }
+
+            // Update instance references
+            inst.vnode = updatedVNode as VNode;
+            inst.dom = parent.childNodes[index] as HTMLElement | Text;
+          } finally {
+            resetCurrentComponent();
+          }
+        });
+      } finally {
+        isRendering = false;
+        runEffects();
+      }
     });
   }
 }

@@ -6,12 +6,14 @@ interface ButtonProps {
   label: string;
   onClick: () => void;
   variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  className?: string;
 }
 
 export const Button: FunctionalComponent<ButtonProps> = ({
   label,
   onClick,
   variant = 'primary',
+  className,
 }) => {
   const variantClasses =
     variant === 'primary'
@@ -27,7 +29,10 @@ export const Button: FunctionalComponent<ButtonProps> = ({
     'px-4 py-2 text-white rounded focus:outline-none focus:ring-2 focus:ring-offset-2';
 
   return (
-    <button className={`${baseClasses} ${variantClasses}`} onClick={onClick}>
+    <button
+      className={`${baseClasses} ${variantClasses} ${className}`}
+      onClick={onClick}
+    >
       {label}
     </button>
   );

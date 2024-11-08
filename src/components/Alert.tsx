@@ -3,6 +3,7 @@
 import { appStore } from '../store';
 import { usePulse } from '../core/hooks';
 import { FunctionalComponent } from '../core/vdom';
+import { Button } from './Button';
 
 interface AlertProps {
   message: string;
@@ -17,10 +18,6 @@ export const Alert: FunctionalComponent<AlertProps> = ({
 }) => {
   const [alertVisible, setAlertVisible] = usePulse('alertVisible', appStore);
 
-  if (!alertVisible) {
-    return null;
-  }
-
   const typeClasses = {
     success: 'bg-green-100 text-green-800',
     error: 'bg-red-100 text-red-800',
@@ -28,17 +25,28 @@ export const Alert: FunctionalComponent<AlertProps> = ({
   };
 
   return (
-    <div
-      className={`p-4 rounded ${typeClasses[type]} flex justify-between items-center`}
-    >
-      <span>{message}</span>
-      {dismissible && (
-        <button
-          className="text-xl font-bold focus:outline-none"
-          onClick={() => setAlertVisible(false)}
+    <div className="flex flex-col gap-4">
+      <Button
+        className="w-fit"
+        label="Show Alert"
+        onClick={() => setAlertVisible(true)}
+      >
+        Show Alert
+      </Button>
+      {alertVisible && (
+        <div
+          className={`p-4 rounded ${typeClasses[type]} flex justify-between items-center`}
         >
-          &times;
-        </button>
+          <span>{message}</span>
+          {dismissible && (
+            <button
+              className="text-xl font-bold focus:outline-none"
+              onClick={() => setAlertVisible(false)}
+            >
+              &times;
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

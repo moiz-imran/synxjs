@@ -2,7 +2,7 @@
 
 module.exports = {
   mode: 'jit', // Just-In-Time mode for optimized builds
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'], // Purge unused styles
+  content: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'], // Purge unused styles
   darkMode: 'class', // Enable dark mode via class
   theme: {
     extend: {

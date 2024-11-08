@@ -2,7 +2,6 @@
 
 import { VNode, FunctionalComponent } from './vdom';
 import {
-  resetHooks,
   setCurrentComponent,
   resetCurrentComponent,
   FunctionalComponentInstance,
@@ -18,8 +17,19 @@ const functionalComponentInstanceMap = new WeakMap<
   FunctionalComponentInstance
 >();
 
+export const componentInstanceCache = new WeakMap<
+  VNode & object,
+  FunctionalComponentInstance
+>();
+
 let rootElement: HTMLElement | null = null;
 let currentVNode: VNode | string | null = null;
+
+// Add a regular Map to track DOM to instance relationships
+export const domToInstanceMap = new Map<
+  HTMLElement | Text,
+  FunctionalComponentInstance
+>();
 
 /**
  * Renders the entire application into the specified container.
@@ -108,13 +118,25 @@ export function render(
     );
     functionalComponentInstanceMap.set(node, functionalComponentInstance);
 
-    // Render the functional component
-    const childVNode = functionalComponentInstance.render();
-    const childDom = render(childVNode);
-    if (childDom) {
-      functionalComponentInstance.dom = childDom;
+    try {
+      // Set the current component before rendering
+      setCurrentComponent(functionalComponentInstance);
+
+      // Reset hooks for this component
+      functionalComponentInstance.currentHook = 0;
+
+      // Render the functional component
+      const childVNode = functionalComponentInstance.render();
+      const childDom = render(childVNode);
+
+      if (childDom) {
+        functionalComponentInstance.dom = childDom;
+      }
+      return childDom;
+    } finally {
+      // Always reset the current component after rendering
+      resetCurrentComponent();
     }
-    return childDom;
   }
 
   // node.type is an intrinsic element
@@ -166,26 +188,40 @@ export function render(
 
 /**
  * Factory function to create a FunctionalComponentInstance.
- * @param node - The Virtual DOM node.
+ * @param vnode - The Virtual DOM node.
  * @param FunctionalComp - The functional component to render.
  * @returns A fully constructed FunctionalComponentInstance.
  */
-function createFunctionalComponentInstance(
-  node: VNode,
+export function createFunctionalComponentInstance(
+  vnode: VNode,
   FunctionalComp: FunctionalComponent<any>,
 ): FunctionalComponentInstance {
   const instance: FunctionalComponentInstance = {
     hooks: [],
     currentHook: 0,
-    vnode: node,
-    dom: null,
+    vnode,
     render: () => {
-      setCurrentComponent(instance); // Push to hook stack
-      resetHooks(); // Reset hooks before each render
-      const childVNode = FunctionalComp(node?.props);
-      resetCurrentComponent(); // Pop from hook stack
-      return childVNode;
+      instance.currentHook = 0;
+      try {
+        setCurrentComponent(instance);
+        return FunctionalComp(vnode.props || {});
+      } finally {
+        resetCurrentComponent();
+      }
     },
+    dom: null,
   };
+
+  // Store instance in cache immediately
+  componentInstanceCache.set(vnode as VNode & object, instance);
   return instance;
+}
+
+// Add new function to handle DOM assignment
+export function assignDomToInstance(
+  instance: FunctionalComponentInstance,
+  dom: HTMLElement | Text,
+) {
+  instance.dom = dom;
+  domToInstanceMap.set(dom, instance);
 }

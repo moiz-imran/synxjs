@@ -1,6 +1,12 @@
 // src/core/diff.ts
 
-import { VNode } from './vdom';
+import { FunctionalComponentInstance } from './hooks';
+import { FunctionalComponent, VNode } from './vdom';
+import {
+  componentInstanceCache,
+  createFunctionalComponentInstance,
+  assignDomToInstance,
+} from './renderer';
 
 /**
  * Renders a Virtual DOM node into an actual DOM node.
@@ -9,68 +15,55 @@ import { VNode } from './vdom';
  */
 export function renderVNode(
   node: VNode | string | number | null,
+  parentInstance?: FunctionalComponentInstance,
 ): HTMLElement | Text | null {
-  if (node === null) {
-    console.warn('renderVNode: Attempted to render a null vnode.');
-    return null;
-  }
+  if (!node) return null;
 
+  // Handle text nodes
   if (typeof node === 'string' || typeof node === 'number') {
-    console.log('renderVNode: Rendering text node:', node);
-    return document.createTextNode(node.toString());
+    return document.createTextNode(String(node));
   }
 
   // Handle functional components
   if (typeof node.type === 'function') {
-    const FunctionalComp = node.type;
-    const childVNode = FunctionalComp(node.props || {});
-    return renderVNode(childVNode);
+    const instance =
+      componentInstanceCache.get(node as VNode & object) ||
+      createFunctionalComponentInstance(node, node.type);
+
+    const renderedNode = instance.render();
+    const dom = renderVNode(renderedNode, instance);
+
+    if (dom && !instance.dom) {
+      assignDomToInstance(instance, dom);
+    }
+
+    return dom;
   }
 
-  // node.type is an intrinsic element
+  // Create element
   const element = document.createElement(node.type as string);
 
-  // Set props
-  const props = node.props || {};
-  for (const [key, value] of Object.entries(props)) {
-    if (key.startsWith('on') && typeof value === 'function') {
-      const event = key.slice(2).toLowerCase();
-      element.addEventListener(event, value as EventListenerOrEventListenerObject);
-    } else if (key === 'className') {
-      element.setAttribute('class', value as string);
-    } else if (key === 'style' && typeof value === 'object') {
-      Object.assign(element.style, value);
-    } else {
-      element.setAttribute(key, value as string);
-    }
+  // Set attributes
+  if (node.props) {
+    updateAttributes(element, node.props, {});
   }
 
-  // Render and append children
-  if (typeof node.children === 'string' || typeof node.children === 'number') {
-    const textNode = document.createTextNode(node.children.toString());
-    element.appendChild(textNode);
-  } else if (Array.isArray(node.children)) {
-    node.children.forEach((child, idx) => {
-      if (child === undefined || child === null) return; // Skip null/undefined
-      const childDom =
-        typeof child === 'string' || typeof child === 'number'
-          ? document.createTextNode(String(child))
-          : renderVNode(child);
-      if (childDom) {
-        element.appendChild(childDom);
-      }
+  // Handle children
+  if (node.children) {
+    const children = Array.isArray(node.children)
+      ? node.children
+      : [node.children];
+    children.forEach((child) => {
+      const childDom = renderVNode(child);
+      if (childDom) element.appendChild(childDom);
     });
-  } else if (node.children) {
-    const childDom =
-      typeof node.children === 'string' || typeof node.children === 'number'
-        ? document.createTextNode(String(node.children))
-        : renderVNode(node.children);
-    if (childDom) {
-      element.appendChild(childDom);
-    }
   }
 
-  console.log('renderVNode: Created element', element);
+  // If this element is the direct child of a component, assign it
+  if (parentInstance && !parentInstance.dom) {
+    assignDomToInstance(parentInstance, element);
+  }
+
   return element;
 }
 
@@ -89,81 +82,107 @@ export function diff(
 ) {
   const existingElement = parent.childNodes[index];
 
-  // If oldVNode doesn't exist, create and append the new element
-  if (!oldVNode) {
-    const newDom = renderVNode(newVNode);
-    if (newDom) {
-      parent.appendChild(newDom);
-      console.log(`diff: Appended new DOM node at index ${index}`);
+  // Handle functional components
+  if (
+    typeof newVNode === 'object' &&
+    newVNode !== null &&
+    typeof newVNode.type === 'function'
+  ) {
+    const FunctionalComp = newVNode.type as FunctionalComponent<any>;
+
+    // Try to reuse existing instance
+    let instance = componentInstanceCache.get(oldVNode as VNode & object);
+
+    if (!instance) {
+      instance = createFunctionalComponentInstance(newVNode, FunctionalComp);
+    } else {
+      // Update instance props
+      instance.vnode = newVNode;
+      componentInstanceCache.set(newVNode as VNode & object, instance);
     }
+
+    const renderedNode = instance.render();
+
+    if (instance.dom) {
+      // Update existing DOM in place
+      diff(renderedNode, instance.vnode, parent, index);
+    } else {
+      // First render
+      const newDom = renderVNode(renderedNode, instance);
+      if (newDom) {
+        if (existingElement) {
+          parent.replaceChild(newDom, existingElement);
+        } else {
+          parent.appendChild(newDom);
+        }
+      }
+    }
+
     return;
   }
 
-  // If newVNode doesn't exist, remove the existing element
-  if (!newVNode) {
-    if (existingElement) {
-      parent.removeChild(existingElement);
-      console.log(`diff: Removed DOM node at index ${index}`);
+  // Handle regular DOM elements
+  if (
+    typeof newVNode === 'object' &&
+    newVNode !== null &&
+    typeof newVNode.type === 'string'
+  ) {
+    if (!existingElement) {
+      const newDom = renderVNode(newVNode);
+      if (newDom) {
+        parent.appendChild(newDom);
+      }
+      return;
     }
-    return;
-  }
 
-  // If both are strings and different, replace the text node
-  if (typeof newVNode === 'string' || typeof newVNode === 'number') {
-    if (newVNode !== oldVNode) {
-      const newTextNode = document.createTextNode(newVNode.toString());
-      if (existingElement) {
-        parent.replaceChild(newTextNode, existingElement);
-        console.log(
-          `diff: Replaced text node at index ${index} with '${newVNode}'`,
-        );
+    // Update existing element
+    if (existingElement.nodeName.toLowerCase() === newVNode.type) {
+      // Update props
+      updateAttributes(
+        existingElement as HTMLElement,
+        newVNode.props || {},
+        (oldVNode as VNode)?.props || {},
+      );
+
+      // Update children
+      const newChildren = Array.isArray(newVNode.children)
+        ? newVNode.children
+        : newVNode.children
+          ? [newVNode.children]
+          : [];
+
+      const oldChildren =
+        typeof oldVNode === 'object' && oldVNode !== null
+          ? Array.isArray(oldVNode.children)
+            ? oldVNode.children
+            : oldVNode.children
+              ? [oldVNode.children]
+              : []
+          : [];
+
+      const max = Math.max(newChildren.length, oldChildren.length);
+      for (let i = 0; i < max; i++) {
+        diff(newChildren[i], oldChildren[i], existingElement as HTMLElement, i);
       }
     }
     return;
   }
 
-  // If types are different, replace the element
-  if (newVNode.type !== (oldVNode as VNode)?.type) {
-    const newDom = renderVNode(newVNode);
-    if (existingElement && newDom) {
-      parent.replaceChild(newDom, existingElement);
-      console.log(
-        `diff: Replaced element at index ${index} with new type '${newVNode.type}'`,
-      );
+  // Handle text nodes
+  if (typeof newVNode === 'string' || typeof newVNode === 'number') {
+    if (existingElement && existingElement.nodeType === Node.TEXT_NODE) {
+      if (existingElement.textContent !== String(newVNode)) {
+        existingElement.textContent = String(newVNode);
+      }
+    } else {
+      const textNode = document.createTextNode(String(newVNode));
+      if (existingElement) {
+        parent.replaceChild(textNode, existingElement);
+      } else {
+        parent.appendChild(textNode);
+      }
     }
-    return;
   }
-
-  // Update attributes
-  updateAttributes(
-    existingElement as HTMLElement,
-    newVNode.props || {},
-    (oldVNode as VNode)?.props || {},
-  );
-
-  // Reconcile children
-  const newChildren = Array.isArray(newVNode.children)
-    ? newVNode.children
-    : newVNode.children
-      ? [newVNode.children]
-      : [];
-  const oldChildren =
-    typeof oldVNode === 'object' && oldVNode !== null
-      ? Array.isArray(oldVNode.children)
-        ? oldVNode.children
-        : oldVNode.children
-          ? [oldVNode.children]
-          : []
-      : [];
-
-  const max = Math.max(newChildren.length, oldChildren.length);
-  for (let i = 0; i < max; i++) {
-    diff(newChildren[i], oldChildren[i], existingElement as HTMLElement, i);
-  }
-
-  console.log(
-    `diff: Reconciled children for element '${newVNode.type}' at index ${index}`,
-  );
 }
 
 /**

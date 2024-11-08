@@ -20,7 +20,7 @@ export interface FunctionalComponentInstance {
 /**
  * Hook Stack to manage the rendering context.
  */
-const hookStack: FunctionalComponentInstance[] = [];
+let hookStack: FunctionalComponentInstance[] = [];
 
 /**
  * Hook Map to store hooks per functional component instance.
@@ -28,10 +28,24 @@ const hookStack: FunctionalComponentInstance[] = [];
 const hookMap: WeakMap<FunctionalComponentInstance, any[]> = new WeakMap();
 
 /**
+ * Pulse Subscriptions Map to track subscriptions per component instance
+ */
+const pulseSubscriptions = new WeakMap<
+  FunctionalComponentInstance,
+  Map<string, () => void>
+>();
+
+/**
  * Sets the current functional component by pushing it onto the stack.
  * @param component - The functional component instance being rendered.
  */
 export function setCurrentComponent(component: FunctionalComponentInstance) {
+  // Check if the instance is already in the stack
+  const existingIndex = hookStack.findIndex((comp) => comp === component);
+  if (existingIndex !== -1) {
+    // If it exists, remove it and everything after it
+    hookStack = hookStack.slice(0, existingIndex);
+  }
   hookStack.push(component);
   if (!hookMap.has(component)) {
     hookMap.set(component, []);
@@ -39,7 +53,7 @@ export function setCurrentComponent(component: FunctionalComponentInstance) {
   console.log(
     `setCurrentComponent: Pushed component ${
       typeof component.vnode?.type === 'string'
-        ? component.vnode
+        ? component.vnode.type
         : component.vnode?.type.name || 'Anonymous Functional Component'
     } to hook stack.`,
   );
@@ -49,14 +63,16 @@ export function setCurrentComponent(component: FunctionalComponentInstance) {
  * Resets the current functional component by popping it off the stack.
  */
 export function resetCurrentComponent() {
-  const popped = hookStack.pop();
-  console.log(
-    `resetCurrentComponent: Popped component ${
-      typeof popped?.vnode?.type === 'string'
-        ? popped?.vnode
-        : popped?.vnode?.type.name || 'Anonymous Functional Component'
-    } from hook stack.`,
-  );
+  if (hookStack.length > 0) {
+    const popped = hookStack.pop();
+    console.log(
+      `resetCurrentComponent: Popped component ${
+        typeof popped?.vnode?.type === 'string'
+          ? popped?.vnode.type
+          : popped?.vnode?.type.name || 'Anonymous Functional Component'
+      } from hook stack.`,
+    );
+  }
 }
 
 /**
@@ -74,7 +90,7 @@ function getCurrentComponent(): FunctionalComponentInstance {
   console.log(
     `getCurrentComponent: Current component is ${
       typeof current.vnode?.type === 'string'
-        ? current.vnode
+        ? current.vnode.type
         : current.vnode?.type.name || 'Anonymous Functional Component'
     }`,
   );
@@ -86,14 +102,20 @@ function getCurrentComponent(): FunctionalComponentInstance {
  */
 export function resetHooks() {
   const current = getCurrentComponent();
-  current.currentHook = 0;
-  console.log(
-    `resetHooks: Resetting hooks for component ${
-      typeof current.vnode?.type === 'string'
-        ? current.vnode
-        : current.vnode?.type.name || 'Anonymous Functional Component'
-    }`,
-  );
+  if (current) {
+    current.currentHook = 0;
+    console.log(
+      `resetHooks: Resetting hooks for component ${
+        typeof current.vnode?.type === 'string'
+          ? current.vnode.type
+          : current.vnode?.type.name || 'Anonymous Functional Component'
+      }`,
+    );
+  }
+}
+
+export function resetHookStack() {
+  hookStack = [];
 }
 
 /**
@@ -103,13 +125,13 @@ export function resetHooks() {
  */
 export function useState<T>(initialValue: T): [T, Setter<T>] {
   const component = getCurrentComponent();
-  const hooks = hookMap.get(component)!;
+  const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
   if (hooks[hookIndex] === undefined) {
     hooks[hookIndex] = initialValue;
     console.log(
-      `useState: Initialized hook at index ${hookIndex} with value`,
+      `[useState] Initialized hook at index ${hookIndex} with value:`,
       initialValue,
     );
   }
@@ -119,11 +141,12 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
       typeof newValue === 'function'
         ? (newValue as (prev: T) => T)(hooks[hookIndex])
         : newValue;
-    hooks[hookIndex] = valueToSet;
+
     console.log(
-      `useState: Updating hook at index ${hookIndex} to value`,
+      `[useState] Updating hook at index ${hookIndex} to value:`,
       valueToSet,
     );
+    hooks[hookIndex] = valueToSet;
     const newVNode = component.render(); // Trigger re-render and get new VNode
     scheduleUpdate(component, newVNode); // Update the DOM
   };
@@ -131,32 +154,39 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
   return [hooks[hookIndex], setState];
 }
 
+type Effect = () => void | (() => void);
+const effects: Effect[] = [];
+
 /**
  * useEffect Hook
  * @param effect - The effect callback to execute.
  * @param deps - An array of dependencies for the effect.
  */
-export function useEffect(
-  effect: () => void | (() => void),
-  deps?: any[],
-): void {
+export function useEffect(effect: Effect, deps?: any[]) {
   const component = getCurrentComponent();
-  const hooks = hookMap.get(component)!;
+  const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
-  const oldHook = hooks[hookIndex];
-  const hasChanged =
-    !oldHook || !deps || deps.some((dep, i) => dep !== oldHook.deps[i]);
+  const prevDeps = hooks[hookIndex];
+  let hasChanged = true;
+
+  if (prevDeps) {
+    hasChanged = deps?.some((dep, i) => !Object.is(dep, prevDeps[i])) ?? true;
+  }
 
   if (hasChanged) {
-    if (oldHook && oldHook.cleanup) {
-      console.log(`useEffect: Cleaning up hook at index ${hookIndex}`);
-      oldHook.cleanup();
-    }
+    hooks[hookIndex] = deps;
+    effects.push(effect);
+  }
+}
 
-    console.log(`useEffect: Executing effect for hook at index ${hookIndex}`);
-    const cleanup = effect();
-    hooks[hookIndex] = { deps, cleanup };
+/**
+ * Runs all pending effects.
+ */
+export function runEffects() {
+  while (effects.length > 0) {
+    const effect = effects.shift();
+    if (effect) effect();
   }
 }
 
@@ -170,44 +200,80 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
   selector: K,
   store: PulseStore<T>,
 ): [T[K], Setter<T[K]>] {
-  // Initialize local state with the current pulse value
-  const [value, setValue] = useState<T[K]>(store.getPulses()[selector]);
+  const component = getCurrentComponent();
+  console.log(
+    '[usePulse] Component:',
+    typeof component.vnode?.type === 'string'
+      ? component.vnode.type
+      : (component.vnode?.type as any)?.name || 'Anonymous Component',
+    'Current value:',
+    store.getPulse(selector),
+  );
 
-  useEffect(() => {
-    // Define a listener that updates the local state if the relevant pulse changes
-    const handleChange = (changedKeys: Set<K>) => {
-      if (changedKeys.has(selector)) {
+  const hooks = component.hooks;
+  const hookIndex = component.currentHook++;
+
+  // Initialize subscriptions map for this component if it doesn't exist
+  if (!pulseSubscriptions.has(component)) {
+    pulseSubscriptions.set(component, new Map());
+  }
+  const subscriptions = pulseSubscriptions.get(component)!;
+
+  // Initialize hook value if not already set
+  if (hooks[hookIndex] === undefined) {
+    hooks[hookIndex] = store.getPulse(selector);
+
+    // Clean up old subscription if it exists
+    const oldSubscription = subscriptions.get(String(selector));
+    if (oldSubscription) {
+      store.unsubscribe(selector, oldSubscription);
+    }
+
+    // Create new subscription with immediate update check
+    const subscription = () => {
+      const newValue = store.getPulse(selector);
+      console.log('[usePulse:subscription] Value changed:', {
+        component:
+          typeof component.vnode?.type === 'string'
+            ? component.vnode.type
+            : (component.vnode?.type as any)?.name || 'Anonymous Component',
+        selector,
+        oldValue: hooks[hookIndex],
+        newValue,
+      });
+
+      if (!Object.is(hooks[hookIndex], newValue)) {
+        hooks[hookIndex] = newValue;
         console.log(
-          `usePulse: Detected change in '${String(selector)}', updating state.`,
+          '[usePulse:subscription] Scheduling update for',
+          typeof component.vnode?.type === 'string'
+            ? component.vnode.type
+            : (component.vnode?.type as any)?.name || 'Anonymous Component',
         );
-        setValue(store.getPulses()[selector]);
+        scheduleUpdate(component, component.vnode);
       }
     };
 
-    // Subscribe to PulseStore changes
-    const unsubscribe = store.subscribe(selector, handleChange);
-    console.log(`usePulse: Subscribed to changes in '${String(selector)}'`);
+    store.subscribe(selector, subscription);
+    subscriptions.set(String(selector), subscription);
 
-    // Cleanup on unmount
-    return () => {
-      console.log(
-        `usePulse: Unsubscribing from changes in '${String(selector)}'`,
-      );
-      unsubscribe();
-    };
-  }, [selector]);
+    console.log(
+      `[usePulse] Set up subscription for "${String(selector)}" in ${
+        typeof component.vnode?.type === 'string'
+          ? component.vnode.type
+          : component.vnode?.type.name || 'Anonymous Component'
+      }`,
+    );
+  }
 
-  // Setter function to update the pulse
   const setter: Setter<T[K]> = (newValue) => {
     if (typeof newValue === 'function') {
       const updater = newValue as (prev: T[K]) => T[K];
-      store.setPulses({
-        [selector]: updater(store.getPulses()[selector]),
-      } as Pick<T, K>);
+      store.setPulse(selector, updater(store.getPulse(selector) as T[K]));
     } else {
-      store.setPulses({ [selector]: newValue } as Pick<T, K>);
+      store.setPulse(selector, newValue);
     }
   };
 
-  return [value, setter];
+  return [hooks[hookIndex], setter];
 }
