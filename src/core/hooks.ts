@@ -148,7 +148,7 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
     );
     hooks[hookIndex] = valueToSet;
     const newVNode = component.render(); // Trigger re-render and get new VNode
-    scheduleUpdate(component, newVNode); // Update the DOM
+    scheduleUpdate(component); // Update the DOM
   };
 
   return [hooks[hookIndex], setState];
@@ -201,15 +201,6 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
   store: PulseStore<T>,
 ): [T[K], Setter<T[K]>] {
   const component = getCurrentComponent();
-  console.log(
-    '[usePulse] Component:',
-    typeof component.vnode?.type === 'string'
-      ? component.vnode.type
-      : (component.vnode?.type as any)?.name || 'Anonymous Component',
-    'Current value:',
-    store.getPulse(selector),
-  );
-
   const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
@@ -250,7 +241,7 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
             ? component.vnode.type
             : (component.vnode?.type as any)?.name || 'Anonymous Component',
         );
-        scheduleUpdate(component, component.vnode);
+        scheduleUpdate(component);
       }
     };
 

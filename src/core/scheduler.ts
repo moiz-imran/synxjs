@@ -3,7 +3,6 @@
 import {
   FunctionalComponentInstance,
   resetCurrentComponent,
-  runEffects,
   setCurrentComponent,
 } from './hooks';
 import { diff } from './diff';
@@ -18,66 +17,33 @@ let isRendering = false;
  * @param instance - The functional component instance to update.
  * @param newVNode - The new Virtual DOM node.
  */
-export function scheduleUpdate(
-  instance: FunctionalComponentInstance,
-  newVNode: VNode | string | number | null,
-) {
-  if (instance) {
-    pendingUpdates.add(instance);
-  }
+export function scheduleUpdate(instance: FunctionalComponentInstance) {
+  pendingUpdates.add(instance);
 
-  if (!isScheduled) {
+  if (!isScheduled && !isRendering) {
     isScheduled = true;
     queueMicrotask(() => {
-      isScheduled = false;
-
-      if (isRendering) {
-        scheduleUpdate(instance, newVNode);
-        return;
-      }
-
       isRendering = true;
-      const updates = Array.from(pendingUpdates);
-      pendingUpdates.clear();
-
       try {
-        updates.forEach((inst) => {
-          if (!inst.dom) return;
-          const parent = inst.dom.parentNode as HTMLElement;
-          if (!parent) return;
+        const updates = Array.from(pendingUpdates);
+        pendingUpdates.clear();
 
-          const index = Array.from(parent.childNodes).indexOf(inst.dom);
-          if (index === -1) return;
+        for (const instance of updates) {
+          if (instance.dom?.parentNode) {
+            const parent = instance.dom.parentNode as HTMLElement;
+            const index = Array.from(parent.childNodes).indexOf(instance.dom);
 
-          try {
-            setCurrentComponent(inst);
-            inst.currentHook = 0;
-
-            // Get current state before update
-            const oldVNode = inst.vnode;
-            const oldDom = inst.dom;
-
-            // Render new state
-            const updatedVNode = inst.render();
-
-            // Update the DOM content directly if it's a text update
-            if (oldDom instanceof Text && typeof updatedVNode === 'string') {
-              oldDom.textContent = updatedVNode;
-            } else {
-              // Otherwise use diff for structural changes
-              diff(updatedVNode, oldVNode, parent, index);
-            }
-
-            // Update instance references
-            inst.vnode = updatedVNode as VNode;
-            inst.dom = parent.childNodes[index] as HTMLElement | Text;
-          } finally {
+            // Set component context before rendering
+            setCurrentComponent(instance);
+            const newVNode = instance.render();
+            diff(newVNode, instance.vnode, parent, index);
+            instance.vnode = newVNode as VNode;
             resetCurrentComponent();
           }
-        });
+        }
       } finally {
         isRendering = false;
-        runEffects();
+        isScheduled = false;
       }
     });
   }

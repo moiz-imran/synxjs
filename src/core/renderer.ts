@@ -73,6 +73,11 @@ export function render(
     return null;
   }
 
+  if (typeof node === 'boolean') {
+    console.warn('render: Attempted to render a boolean vnode.');
+    return null;
+  }
+
   if (typeof node === 'string' || typeof node === 'number') {
     console.log('render: Rendering text node:', node);
     return document.createTextNode(node.toString());

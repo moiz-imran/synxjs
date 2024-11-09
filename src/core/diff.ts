@@ -17,7 +17,7 @@ export function renderVNode(
   node: VNode | string | number | null,
   parentInstance?: FunctionalComponentInstance,
 ): HTMLElement | Text | null {
-  if (!node) return null;
+  if (node === null || node === undefined) return null;
 
   // Handle text nodes
   if (typeof node === 'string' || typeof node === 'number') {
@@ -49,9 +49,12 @@ export function renderVNode(
   }
 
   // Handle children
-  if (node.children) {
+  if (node.children !== undefined) {
     const children = Array.isArray(node.children)
-      ? node.children
+      ? node.children.filter(
+          (child): child is NonNullable<typeof child> =>
+            child !== null && child !== undefined && typeof child !== 'boolean',
+        )
       : [node.children];
     children.forEach((child) => {
       const childDom = renderVNode(child);
@@ -81,6 +84,14 @@ export function diff(
   index: number = 0,
 ) {
   const existingElement = parent.childNodes[index];
+
+  // Handle null/undefined new node - remove old node
+  if (newVNode === null || newVNode === undefined) {
+    if (existingElement) {
+      parent.removeChild(existingElement);
+    }
+    return;
+  }
 
   // Handle functional components
   if (
@@ -144,9 +155,12 @@ export function diff(
         (oldVNode as VNode)?.props || {},
       );
 
-      // Update children
+      // Update children with proper removal
       const newChildren = Array.isArray(newVNode.children)
-        ? newVNode.children
+        ? newVNode.children.filter(
+            (child): child is NonNullable<typeof child> =>
+              child != null && typeof child !== 'boolean',
+          )
         : newVNode.children
           ? [newVNode.children]
           : [];
@@ -160,8 +174,13 @@ export function diff(
               : []
           : [];
 
-      const max = Math.max(newChildren.length, oldChildren.length);
-      for (let i = 0; i < max; i++) {
+      // Remove extra children first
+      while (existingElement.childNodes.length > newChildren.length) {
+        existingElement.removeChild(existingElement.lastChild!);
+      }
+
+      // Then update remaining children
+      for (let i = 0; i < newChildren.length; i++) {
         diff(newChildren[i], oldChildren[i], existingElement as HTMLElement, i);
       }
     }

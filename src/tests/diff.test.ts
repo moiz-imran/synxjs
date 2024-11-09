@@ -5,6 +5,9 @@ import {
   domToInstanceMap,
 } from '../core/renderer';
 import { FunctionalComponent, VNode } from '../core/vdom';
+import { usePulse, useState } from '../core/hooks';
+import { setCurrentComponent, resetCurrentComponent } from '../core/hooks';
+import { PulseStore } from '../core/store';
 
 interface AppProps {
   theme?: 'light' | 'dark';
@@ -131,5 +134,138 @@ describe('Component Diffing', () => {
 
     const updatedCounter = container.querySelector('.counter');
     expect(updatedCounter).toBe(originalCounter);
+  });
+
+  test('should handle conditional rendering correctly', () => {
+    const AlertTest: FunctionalComponent = () => {
+      const [visible, setVisible] = useState(false);
+
+      const children: VNode[] = [
+        {
+          type: 'button',
+          props: {
+            onClick: () => {
+              setVisible(true);
+            },
+          },
+          children: 'Show',
+        },
+      ];
+
+      if (visible) {
+        children.push({
+          type: 'div',
+          props: { className: 'alert' },
+          children: 'Alert Content',
+        });
+      }
+
+      const vnode: VNode = {
+        type: 'div',
+        props: {},
+        children,
+      };
+
+      return vnode;
+    };
+
+    // Initial render
+    const vnode: VNode = {
+      type: AlertTest,
+      props: {},
+      children: [],
+    };
+
+    const instance = createFunctionalComponentInstance(vnode, AlertTest);
+    const initialDom = renderVNode(vnode);
+    container.appendChild(initialDom!);
+
+    // Set component context before clicking
+    setCurrentComponent(instance);
+
+    // Find and click the button
+    const button = container.querySelector('button')!;
+    button.click();
+
+    // Reset component context
+    resetCurrentComponent();
+
+    // Wait for microtask queue to process updates
+    return new Promise<void>((resolve) => {
+      queueMicrotask(() => {
+        const alert = container.querySelector('.alert');
+        expect(alert).toBeTruthy();
+        resolve();
+      });
+    });
+  });
+
+  test('should handle Pulse store updates correctly', () => {
+    // Mock store setup similar to appStore
+    const testStore = new PulseStore({
+      alertVisible: false,
+    });
+
+    const AlertTest: FunctionalComponent = () => {
+      const [alertVisible, setAlertVisible] = usePulse(
+        'alertVisible',
+        testStore,
+      );
+
+      const children: VNode[] = [
+        {
+          type: 'button',
+          props: {
+            onClick: () => setAlertVisible(true),
+          },
+          children: 'Show Alert',
+        },
+      ];
+
+      if (alertVisible) {
+        children.push({
+          type: 'div',
+          props: { className: 'alert' },
+          children: 'Alert Content',
+        });
+      }
+
+      const vnode: VNode = {
+        type: 'div',
+        props: {},
+        children,
+      };
+
+      return vnode;
+    };
+
+    // Initial render
+    const vnode: VNode = {
+      type: AlertTest,
+      props: {},
+      children: [],
+    };
+
+    createFunctionalComponentInstance(vnode, AlertTest);
+    const initialDom = renderVNode(vnode);
+    container.appendChild(initialDom!);
+
+    // Verify initial state
+    expect(container.querySelector('.alert')).toBeNull();
+
+    // Click the button
+    const button = container.querySelector('button')!;
+    button.click();
+
+    // Wait for updates
+    return new Promise<void>((resolve) => {
+      queueMicrotask(() => {
+        const alert = container.querySelector('.alert');
+        console.log('[test] alert', alert);
+        expect(alert).toBeTruthy();
+        expect(testStore.getPulse('alertVisible')).toBe(true);
+        resolve();
+      });
+    });
   });
 });
