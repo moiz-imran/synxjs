@@ -7,6 +7,9 @@ let activeEffect: Effect | null = null;
 // Maps to track dependencies between pulse properties and effects
 const targetMap = new WeakMap<object, Map<string | symbol, Set<Effect>>>();
 
+// Track which dependencies an effect is subscribed to for cleanup
+const effectDependencies = new WeakMap<Effect, Set<[object, string | symbol]>>();
+
 /**
  * Creates a reactive proxy of the given target object.
  * @param target - The object to make reactive.
@@ -46,6 +49,13 @@ function track(target: object, key: string | symbol) {
     }
 
     dep.add(activeEffect);
+
+    let effectDeps = effectDependencies.get(activeEffect);
+    if (!effectDeps) {
+      effectDeps = new Set();
+      effectDependencies.set(activeEffect, effectDeps);
+    }
+    effectDeps.add([target, key]);
   }
 }
 
@@ -60,8 +70,36 @@ function trigger(target: object, key: string | symbol) {
 
   const dep = depsMap.get(key);
   if (dep) {
-    dep.forEach((effect) => effect());
+    const effects = new Set(dep);
+    effects.forEach((effect) => effect());
   }
+}
+
+/**
+ * Removes an effect from all its tracked dependencies.
+ */
+function cleanupEffect(effect: Effect): void {
+  const deps = effectDependencies.get(effect);
+  if (!deps) return;
+
+  deps.forEach(([target, key]) => {
+    const depsMap = targetMap.get(target);
+    if (!depsMap) return;
+
+    const dep = depsMap.get(key);
+    if (!dep) return;
+
+    dep.delete(effect);
+
+    if (dep.size === 0) {
+      depsMap.delete(key);
+    }
+    if (depsMap.size === 0) {
+      targetMap.delete(target);
+    }
+  });
+
+  effectDependencies.delete(effect);
 }
 
 /**
@@ -70,12 +108,13 @@ function trigger(target: object, key: string | symbol) {
  * @returns A cleanup function to remove the effect.
  */
 export function effect(eff: Effect): () => void {
+  cleanupEffect(eff);
+
   activeEffect = eff;
-  eff(); // Execute the effect initially to establish dependencies
+  eff();
   activeEffect = null;
 
   return () => {
-    // Optional: Implement effect cleanup if needed
-    // This can be expanded to remove the effect from all dependencies
+    cleanupEffect(eff);
   };
 }
