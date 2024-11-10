@@ -151,3 +151,20 @@ export function createFunctionalComponentInstance(
   componentInstanceCache.set(vnode as VNode & object, instance);
   return instance;
 }
+
+export function unmountComponent(instance: FunctionalComponentInstance): void {
+  // Clean up hooks
+  instance.hooks.forEach(hook => {
+    if ('cleanup' in hook && typeof hook.cleanup === 'function') {
+      hook.cleanup();
+    }
+    if ('unsubscribe' in hook && typeof hook.unsubscribe === 'function') {
+      hook.unsubscribe();
+    }
+  });
+
+  // Clear references
+  instance.hooks = [];
+  instance.vnode = null;
+  instance.dom = null;
+}

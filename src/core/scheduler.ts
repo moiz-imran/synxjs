@@ -4,6 +4,7 @@ import {
   FunctionalComponentInstance,
   resetCurrentComponent,
   setCurrentComponent,
+  runEffects
 } from './hooks';
 import { diff } from './diff';
 import { VNode } from './vdom';
@@ -15,36 +16,80 @@ let isRendering = false;
 /**
  * Schedules an update for a functional component instance.
  * @param instance - The functional component instance to update.
- * @param newVNode - The new Virtual DOM node.
  */
-export function scheduleUpdate(instance: FunctionalComponentInstance) {
+export function scheduleUpdate(instance: FunctionalComponentInstance): void {
+  if (!instance || !instance.dom) {
+    return; // Skip invalid instances
+  }
+
   pendingUpdates.add(instance);
+  scheduleRender();
+}
 
-  if (!isScheduled && !isRendering) {
-    isScheduled = true;
-    queueMicrotask(() => {
-      isRendering = true;
-      try {
-        const updates = Array.from(pendingUpdates);
-        pendingUpdates.clear();
+/**
+ * Schedules a microtask to process pending updates.
+ */
+function scheduleRender(): void {
+  if (isScheduled || isRendering) {
+    return;
+  }
 
-        for (const instance of updates) {
-          if (instance.dom?.parentNode) {
-            const parent = instance.dom.parentNode as HTMLElement;
-            const index = Array.from(parent.childNodes).indexOf(instance.dom);
+  isScheduled = true;
+  queueMicrotask(processUpdates);
+}
 
-            // Set component context before rendering
-            setCurrentComponent(instance);
-            const newVNode = instance.render();
-            diff(newVNode, instance.vnode, parent, index);
-            instance.vnode = newVNode as VNode;
-            resetCurrentComponent();
-          }
-        }
-      } finally {
-        isRendering = false;
-        isScheduled = false;
-      }
-    });
+/**
+ * Processes all pending component updates.
+ */
+function processUpdates(): void {
+  if (isRendering) {
+    return;
+  }
+
+  isRendering = true;
+  try {
+    const updates = Array.from(pendingUpdates);
+    pendingUpdates.clear();
+
+    for (const instance of updates) {
+      updateComponent(instance);
+    }
+
+    // Run effects after all components have updated
+    runEffects();
+  } catch (error) {
+    console.error('Error during component update:', error);
+  } finally {
+    isRendering = false;
+    isScheduled = false;
+
+    // If new updates were scheduled during processing, schedule another round
+    if (pendingUpdates.size > 0) {
+      scheduleRender();
+    }
+  }
+}
+
+/**
+ * Updates a single component instance.
+ */
+function updateComponent(instance: FunctionalComponentInstance): void {
+  if (!instance.dom?.parentNode) {
+    pendingUpdates.delete(instance);
+    return;
+  }
+
+  const parent = instance.dom.parentNode as HTMLElement;
+  const index = Array.from(parent.childNodes).indexOf(instance.dom);
+
+  try {
+    setCurrentComponent(instance);
+    const newVNode = instance.render();
+    diff(newVNode, instance.vnode, parent, index);
+    instance.vnode = newVNode as VNode;
+  } catch (error) {
+    console.error(`Error updating component:`, error);
+  } finally {
+    resetCurrentComponent();
   }
 }
