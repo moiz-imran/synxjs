@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { scheduleUpdate } from './scheduler';
 import { PulseStore } from './store';
+import { effect as reactiveEffect } from './reactive';
 
 /**
  * Hook Stack to manage the rendering context.
@@ -28,7 +29,9 @@ const effects: Effect[] = [];
  * Sets the current functional component by pushing it onto the stack.
  * @param component - The functional component instance being rendered.
  */
-export function setCurrentComponent(component: FunctionalComponentInstance): void {
+export function setCurrentComponent(
+  component: FunctionalComponentInstance,
+): void {
   // Check if the instance is already in the stack
   const existingIndex = hookStack.findIndex((comp) => comp === component);
   if (existingIndex !== -1) {
@@ -94,10 +97,11 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
   const hook = hooks[hookIndex] as StateHook<T>;
 
   if (!hook.setValue) {
-    hook.setValue = (newValue: T | ((prev: T) => T)) => {
-      const valueToSet = typeof newValue === 'function'
-        ? (newValue as (prev: T) => T)(hook.value)
-        : newValue;
+    hook.setValue = (newValue: T | ((prev: T) => T)): void => {
+      const valueToSet =
+        typeof newValue === 'function'
+          ? (newValue as (prev: T) => T)(hook.value)
+          : newValue;
 
       hook.value = valueToSet;
       scheduleUpdate(component);
@@ -120,7 +124,8 @@ export function useEffect(effect: Effect, deps?: unknown[]): void {
   const prevHook = hooks[hookIndex] as EffectHook | undefined;
 
   // On mount or when deps change
-  const hasChanged = !prevHook ||
+  const hasChanged =
+    !prevHook ||
     !prevHook.deps ||
     !deps ||
     deps.some((dep, i) => !Object.is(dep, prevHook.deps?.[i]));
@@ -138,9 +143,16 @@ export function useEffect(effect: Effect, deps?: unknown[]): void {
     };
 
     hooks[hookIndex] = hook;
-    effects.push(() => {
+
+    // If it's the initial mount (no prevHook), run immediately
+    if (!prevHook) {
       hook.cleanup = effect();
-    });
+    } else {
+      // Otherwise, schedule the effect to run after render
+      effects.push(() => {
+        hook.cleanup = effect();
+      });
+    }
   }
 }
 
@@ -175,15 +187,15 @@ export function runEffects(): void {
 }
 
 /**
- * usePulse Hook
+ * usePulseState Hook
  * @param selector - The key of the pulse property to subscribe to.
  * @param context - The PulseStore context.
  * @returns A tuple containing the current value and a setter function.
  */
-export function usePulse<K extends keyof T, T extends Record<string, unknown>>(
-  selector: K,
-  store: PulseStore<T>,
-): [T[K], Setter<T[K]>] {
+export function usePulseState<
+  K extends keyof T,
+  T extends Record<string, unknown>,
+>(selector: K, store: PulseStore<T>): [T[K], Setter<T[K]>] {
   const component = getCurrentComponent();
   const hooks = component.hooks;
   const hookIndex = component.currentHook++;
@@ -246,7 +258,8 @@ export function useCallback<T extends (...args: never[]) => unknown>(
     hooks[hookIndex] = hook;
   } else {
     const prevHook = hooks[hookIndex] as CallbackHook<T>;
-    const hasChanged = !deps || deps.some((dep, i) => !Object.is(dep, prevHook.deps[i]));
+    const hasChanged =
+      !deps || deps.some((dep, i) => !Object.is(dep, prevHook.deps[i]));
     if (hasChanged) {
       hooks[hookIndex] = {
         type: 'callback',
@@ -257,4 +270,35 @@ export function useCallback<T extends (...args: never[]) => unknown>(
   }
 
   return (hooks[hookIndex] as CallbackHook<T>).callback;
+}
+
+/**
+ * usePulseEffect Hook - Runs effect whenever any pulse accessed within it changes
+ * @param effect - The effect callback to execute
+ */
+export function usePulseEffect(effect: Effect): void {
+  const component = getCurrentComponent();
+  const hooks = component.hooks;
+  const hookIndex = component.currentHook++;
+
+  if (hooks[hookIndex] === undefined) {
+    const hook: EffectHook = {
+      type: 'effect',
+      effect,
+      deps: undefined,
+      cleanup: undefined,
+    };
+    hooks[hookIndex] = hook;
+  }
+
+  const hook = hooks[hookIndex] as EffectHook;
+
+  // Re-register the effect each time to ensure proper dependency tracking
+  reactiveEffect(() => {
+    if (hook.cleanup) {
+      hook.cleanup();
+    }
+    const cleanup = effect();
+    if (cleanup) hook.cleanup = cleanup;
+  });
 }

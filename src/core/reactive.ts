@@ -8,7 +8,10 @@ let activeEffect: Effect | null = null;
 const targetMap = new WeakMap<object, Map<string | symbol, Set<Effect>>>();
 
 // Track which dependencies an effect is subscribed to for cleanup
-const effectDependencies = new WeakMap<Effect, Set<[object, string | symbol]>>();
+const effectDependencies = new WeakMap<
+  Effect,
+  Set<[object, string | symbol]>
+>();
 
 /**
  * Creates a reactive proxy of the given target object.
@@ -17,11 +20,11 @@ const effectDependencies = new WeakMap<Effect, Set<[object, string | symbol]>>()
  */
 export function reactive<T extends object>(target: T): T {
   return new Proxy(target, {
-    get(obj: T, key: string | symbol) {
+    get(obj: T, key: string | symbol): unknown {
       track(obj, key);
       return obj[key as keyof T];
     },
-    set(obj: T, key: string | symbol, value: unknown) {
+    set(obj: T, key: string | symbol, value: unknown): boolean {
       const result = Reflect.set(obj, key, value);
       trigger(obj, key);
       return result;
@@ -34,7 +37,7 @@ export function reactive<T extends object>(target: T): T {
  * @param target - The reactive object.
  * @param key - The property key being accessed.
  */
-function track(target: object, key: string | symbol) {
+function track(target: object, key: string | symbol): void {
   if (activeEffect) {
     let depsMap = targetMap.get(target);
     if (!depsMap) {
@@ -64,7 +67,7 @@ function track(target: object, key: string | symbol) {
  * @param target - The reactive object.
  * @param key - The property key being modified.
  */
-function trigger(target: object, key: string | symbol) {
+function trigger(target: object, key: string | symbol): void {
   const depsMap = targetMap.get(target);
   if (!depsMap) return;
 

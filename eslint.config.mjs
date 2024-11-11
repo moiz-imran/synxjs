@@ -16,10 +16,10 @@ export default [
         ecmaFeatures: {
           jsx: true
         }
+      },
+      globals: {
+        browser: true
       }
-    },
-    env: {
-      browser: true
     },
     plugins: {
       '@typescript-eslint': tseslint,
@@ -30,15 +30,23 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/restrict-template-expressions': 'warn',
+      '@typescript-eslint/unbound-method': 'warn'
     }
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      globals: {
+        browser: true
+      }
+    },
     plugins: {
       'prettier': prettierPlugin,
-    },
-    env: {
-      browser: true
     },
     settings: {
       react: {
@@ -48,6 +56,7 @@ export default [
     rules: {
       'prettier/prettier': 'error',
       'no-console': 'warn',
+      'no-undef': 'off',
     }
   }
 ];

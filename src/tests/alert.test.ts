@@ -1,11 +1,7 @@
-import { createElement } from '../core/vdom';
 import { renderVNode } from '../core/diff';
 import type { VNode, FunctionalComponent } from '../core/types';
 import { PulseStore } from '../core/store';
-import { usePulse } from '../core/hooks';
-
-// Set up createElement for JSX
-(global as any).createElement = createElement;
+import { usePulseState } from '../core/hooks';
 
 describe('Alert Integration', () => {
   let container: HTMLElement;
@@ -26,7 +22,7 @@ describe('Alert Integration', () => {
 
   test('should show alert when clicking show alert button', async () => {
     const AlertTest: FunctionalComponent = () => {
-      const [alertVisible, setAlertVisible] = usePulse(
+      const [alertVisible, setAlertVisible] = usePulseState(
         'alertVisible',
         testStore,
       );

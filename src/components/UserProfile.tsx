@@ -1,14 +1,14 @@
 // src/components/UserProfile.tsx
 
 import { FunctionalComponent } from 'core/types';
-import { usePulse } from 'core/hooks';
+import { usePulseState } from 'core/hooks';
 import { Button } from './Button';
 import { userStore } from '../store';
 
 export const UserProfile: FunctionalComponent = () => {
-  const [userName, setUserName] = usePulse('userName', userStore);
+  const [userName, setUserName] = usePulseState('userName', userStore);
 
-  const changeName = () => {
+  const changeName = (): void => {
     const newName = prompt('Enter your name:', userName);
     if (newName && newName.trim() !== '') {
       setUserName(newName.trim());

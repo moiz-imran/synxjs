@@ -1,10 +1,8 @@
-// src/components/App.tsx
-
-import { FunctionalComponent } from 'core/types';
 import { Counter } from './Counter';
 import { UserProfile } from './UserProfile';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { Alert } from './Alert';
+import type { FunctionalComponent } from 'core/types';
 
 export const App: FunctionalComponent = () => {
   return (

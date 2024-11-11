@@ -1,22 +1,20 @@
-// src/components/Counter.tsx
-
 import { FunctionalComponent } from 'core/types';
-import { usePulse } from 'core/hooks';
+import { usePulseState } from 'core/hooks';
 import { appStore } from '../store';
 import { Button } from './Button';
 
 export const Counter: FunctionalComponent = () => {
-  const [count, setCount] = usePulse('count', appStore);
+  const [count, setCount] = usePulseState('count', appStore);
 
-  const increment = () => {
+  const increment = (): void => {
     setCount((c) => c + 1);
   };
 
-  const decrement = () => {
+  const decrement = (): void => {
     setCount((c) => c - 1);
   };
 
-  const resetCount = () => {
+  const resetCount = (): void => {
     setCount(0);
   };
 

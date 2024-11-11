@@ -9,7 +9,13 @@ export interface BaseHook {
   id?: symbol; // For debugging
 }
 
-export type HookType = 'state' | 'effect' | 'pulse' | 'callback' | 'memo' | 'mount';
+export type HookType =
+  | 'state'
+  | 'effect'
+  | 'pulse'
+  | 'callback'
+  | 'memo'
+  | 'mount';
 
 export interface StateHook<T = unknown> extends BaseHook {
   type: 'state';

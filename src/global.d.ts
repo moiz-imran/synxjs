@@ -2,10 +2,16 @@
 
 // Declare createElement globally
 declare function createElement(
-  type: unknown,
-  props?: unknown,
-  ...children: unknown[]
-): unknown;
+  type: never,
+  props: never,
+  ...children: never[]
+): VNode;
+
+declare global {
+  window = {
+    createElement: typeof createElement,
+  };
+}
 
 // Declare Fragment globally
 declare const Fragment: (props: { children: unknown }) => unknown;
@@ -32,10 +38,12 @@ declare namespace JSX {
     p: HTMLAttributes<HTMLParagraphElement>;
     // Add more elements as needed
   }
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface Element extends VNode {}
 }
 
 // Define common HTML attributes
-interface HTMLAttributes<T> extends AriaAttributes {
+interface HTMLAttributes<T> extends AriaAttributes<T> {
   className?: string;
   id?: string;
   style?: Partial<CSSStyleDeclaration>;

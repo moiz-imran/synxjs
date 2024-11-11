@@ -1,5 +1,3 @@
-// src/core/renderer.ts
-
 import { setCurrentComponent, resetCurrentComponent } from './hooks';
 import type {
   VNode,
@@ -117,7 +115,7 @@ function applyProps(element: HTMLElement, props: VNodeProps): void {
 function renderChildren(element: HTMLElement, children: VNodeChildren): void {
   if (!children) return;
 
-  const appendChild = (child: VNodeChild) => {
+  const appendChild = (child: VNodeChild): void => {
     if (child === undefined || child === null || typeof child === 'boolean')
       return;
 
@@ -150,7 +148,9 @@ export function createFunctionalComponentInstance(
       instance.currentHook = 0;
       try {
         setCurrentComponent(instance);
-        return (vnode.type as FunctionalComponent<unknown>)(vnode.props || {});
+        return (vnode.type as FunctionalComponent<unknown>)(
+          vnode.props || {},
+        ) as VNode;
       } finally {
         resetCurrentComponent();
       }
@@ -175,6 +175,6 @@ export function unmountComponent(instance: FunctionalComponentInstance): void {
 
   // Clear references
   instance.hooks = [];
-  instance.vnode = null;
+  instance.vnode = null as unknown as VNode;
   instance.dom = null;
 }

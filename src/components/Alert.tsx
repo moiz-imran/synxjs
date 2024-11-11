@@ -1,7 +1,7 @@
 // src/components/Alert.tsx
 
 import { appStore } from '../store';
-import { usePulse } from 'core/hooks';
+import { usePulseState } from 'core/hooks';
 import { FunctionalComponent } from 'core/types';
 import { Button } from './Button';
 
@@ -16,7 +16,10 @@ export const Alert: FunctionalComponent<AlertProps> = ({
   type = 'info',
   dismissible = false,
 }) => {
-  const [alertVisible, setAlertVisible] = usePulse('alertVisible', appStore);
+  const [alertVisible, setAlertVisible] = usePulseState(
+    'alertVisible',
+    appStore,
+  );
 
   const typeClasses = {
     success: 'bg-green-100 text-green-800',

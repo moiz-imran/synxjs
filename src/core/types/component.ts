@@ -7,9 +7,11 @@ export type RenderResult = VNode | string | number | null;
 export interface FunctionalComponentInstance {
   hooks: Hook[];
   currentHook: number;
-  vnode: VNode | null;
+  vnode: VNode;
   render: () => RenderResult;
   dom: DOMNode | null;
 }
 
-export type FunctionalComponent<P = {}> = (props: P) => RenderResult;
+export interface FunctionalComponent<P = object> {
+  (props: P): VNode | JSX.Element;
+}

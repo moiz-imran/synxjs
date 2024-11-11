@@ -2,9 +2,9 @@ import { diff, renderVNode } from '../core/diff';
 import {
   createFunctionalComponentInstance,
   componentInstanceCache,
-  domToInstanceMap,
+  // domToInstanceMap,
 } from '../core/renderer';
-import { usePulse, useState } from '../core/hooks';
+import { usePulseState, useState } from '../core/hooks';
 import { setCurrentComponent, resetCurrentComponent } from '../core/hooks';
 import { PulseStore } from '../core/store';
 import type { FunctionalComponent, VNode } from '../core/types';
@@ -23,9 +23,6 @@ describe('Component Diffing', () => {
 
   afterEach(() => {
     document.body.removeChild(container);
-    // Reset caches
-    (componentInstanceCache as any) = new WeakMap();
-    (domToInstanceMap as any) = new Map();
   });
 
   describe('Component Instance Management', () => {
@@ -108,7 +105,7 @@ describe('Component Diffing', () => {
         children: [],
       };
 
-      const instance = createFunctionalComponentInstance(initialVNode);
+      createFunctionalComponentInstance(initialVNode);
       const initialDom = renderVNode(initialVNode);
       container.appendChild(initialDom!);
 
@@ -179,7 +176,7 @@ describe('Component Diffing', () => {
       const testStore = new PulseStore({ alertVisible: false });
 
       const AlertTest: FunctionalComponent = () => {
-        const [alertVisible, setAlertVisible] = usePulse(
+        const [alertVisible, setAlertVisible] = usePulseState(
           'alertVisible',
           testStore,
         );

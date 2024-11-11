@@ -2,18 +2,20 @@ import { createElement } from './core/vdom';
 import { App } from './components/App';
 import { renderApp } from './core/renderer';
 import './styles/tailwind.css';
+import { VNode } from 'core/types';
 
 /**
  * Assign createElement globally for JSX to work
  */
-(window as any).createElement = createElement;
+window.createElement = createElement;
 
 /**
  * Initialize and render the App
  */
 const root = document.getElementById('root');
 if (root) {
-  renderApp(root, createElement(App));
+  renderApp(root, (<App />) as VNode);
 } else {
+  // eslint-disable-next-line no-console
   console.error('Root container not found!');
 }

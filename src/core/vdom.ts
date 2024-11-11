@@ -59,25 +59,20 @@ export const Fragment = Symbol('Fragment');
  * );
  * ```
  */
-export function createElement<P>(
-  type: string | FunctionalComponent | typeof Fragment,
-  props: P = {} as P,
+export function createElement<P extends VNodeProps>(
+  type: string | FunctionalComponent<P> | typeof Fragment,
+  props: P | null,
   ...children: VNodeChildren
 ): VNode {
-  // Handle Fragment type by directly returning its children
-  if (type === Fragment) {
-    return {
-      type: typeof Fragment,
-      props: {},
-      children: children.length === 1 ? [children[0]] : children,
-    };
-  }
+  const finalProps = props || ({} as P);
 
-  return {
-    type,
-    props: props as VNodeProps,
-    children: children.length === 1 ? [children[0]] : children,
+  const vnode: VNode = {
+    type: type === Fragment ? typeof Fragment : type,
+    props: finalProps,
+    children: children.flat(),
   };
+
+  return vnode;
 }
 
 /**

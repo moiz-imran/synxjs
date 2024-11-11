@@ -1,8 +1,8 @@
-import { useEffect, useMount, usePulse } from 'core/hooks';
+import { usePulseEffect, usePulseState } from 'core/hooks';
 import { FunctionalComponent } from 'core/types';
 import { appStore } from '../store';
 
-const applyTheme = (theme: string) => {
+const applyTheme = (theme: string): void => {
   const root = document.documentElement;
   if (theme === 'dark') {
     root.classList.add('dark');
@@ -12,13 +12,9 @@ const applyTheme = (theme: string) => {
 };
 
 export const ThemeSwitcher: FunctionalComponent = () => {
-  const [theme, setTheme] = usePulse('theme', appStore);
+  const [theme, setTheme] = usePulseState('theme', appStore);
 
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  useMount(() => {
+  usePulseEffect(() => {
     applyTheme(theme);
   });
 
