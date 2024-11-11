@@ -1,6 +1,6 @@
 // src/core/reactive.ts
 
-type Effect = () => void;
+import type { Effect } from './types';
 
 let activeEffect: Effect | null = null;
 
@@ -21,7 +21,7 @@ export function reactive<T extends object>(target: T): T {
       track(obj, key);
       return obj[key as keyof T];
     },
-    set(obj: T, key: string | symbol, value: any) {
+    set(obj: T, key: string | symbol, value: unknown) {
       const result = Reflect.set(obj, key, value);
       trigger(obj, key);
       return result;

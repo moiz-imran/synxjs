@@ -1,6 +1,6 @@
-import { createElement, FunctionalComponent } from '../core/vdom';
+import { createElement } from '../core/vdom';
 import { renderVNode } from '../core/diff';
-import { VNode } from '../core/vdom';
+import type { VNode, FunctionalComponent } from '../core/types';
 import { PulseStore } from '../core/store';
 import { usePulse } from '../core/hooks';
 
@@ -60,8 +60,6 @@ describe('Alert Integration', () => {
 
     const initialDom = renderVNode(vnode);
     container.appendChild(initialDom!);
-
-    console.log('[alert.test] initialDom', container.innerHTML);
 
     // Verify initial state
     expect(container.querySelector('.alert')).toBeNull();

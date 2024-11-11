@@ -1,6 +1,6 @@
 // src/components/CustomButton.tsx
 
-import { FunctionalComponent } from '../core/vdom';
+import { FunctionalComponent } from 'core/types';
 
 interface ButtonProps {
   label: string;

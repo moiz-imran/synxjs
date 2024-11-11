@@ -1,7 +1,11 @@
 // src/core/diff.ts
 
-import { FunctionalComponentInstance } from './hooks';
-import { FunctionalComponent, VNode } from './vdom';
+import type {
+  FunctionalComponentInstance,
+  VNode,
+  VNodeChildren,
+  VNodeProps,
+} from './types';
 import {
   componentInstanceCache,
   createFunctionalComponentInstance,
@@ -40,7 +44,7 @@ function renderFunctionalVNode(
   parentInstance?: FunctionalComponentInstance,
 ): DOMNode | null {
   const instance =
-    componentInstanceCache.get(node as VNode & object) ||
+    componentInstanceCache.get(node as VNode) ||
     createFunctionalComponentInstance(node);
 
   const renderedNode = instance.render();
@@ -232,17 +236,24 @@ function diffTextNode(
  */
 function updateAttributes(
   element: HTMLElement,
-  newProps: Record<string, any>,
-  oldProps: Record<string, any>,
+  newProps: VNodeProps,
+  oldProps: VNodeProps,
 ): void {
   // Handle event listeners
-  const handleEvent = (key: string, value: any, isRemoval = false) => {
+  const handleEvent = (
+    key: string,
+    value: EventListenerOrEventListenerObject,
+    isRemoval = false,
+  ): void => {
     const event = key.slice(2).toLowerCase();
     if (isRemoval) {
       element.removeEventListener(event, value);
     } else {
       if (oldProps[key]) {
-        element.removeEventListener(event, oldProps[key]);
+        element.removeEventListener(
+          event,
+          oldProps[key] as EventListenerOrEventListenerObject,
+        );
       }
       element.addEventListener(event, value);
     }
@@ -253,13 +264,13 @@ function updateAttributes(
     if (key === 'children') return;
     if (value !== oldProps[key]) {
       if (key.startsWith('on') && typeof value === 'function') {
-        handleEvent(key, value);
+        handleEvent(key, value as EventListenerOrEventListenerObject);
       } else {
         const attrKey = key === 'className' ? 'class' : key;
-        if (key === 'style' && typeof value === 'object') {
-          Object.assign(element.style, value);
+        if (key === 'style' && value !== null && typeof value === 'object') {
+          Object.assign(element.style, value as Partial<CSSStyleDeclaration>);
         } else {
-          element.setAttribute(attrKey, value);
+          element.setAttribute(attrKey, String(value));
         }
       }
     }
@@ -269,7 +280,7 @@ function updateAttributes(
   Object.entries(oldProps).forEach(([key, value]) => {
     if (!(key in newProps)) {
       if (key.startsWith('on') && typeof value === 'function') {
-        handleEvent(key, value, true);
+        handleEvent(key, value as EventListenerOrEventListenerObject, true);
       } else {
         const attrKey = key === 'className' ? 'class' : key;
         element.removeAttribute(attrKey);
@@ -281,7 +292,9 @@ function updateAttributes(
 /**
  * Normalizes children to an array
  */
-function normalizeChildren(children: any): Array<VNode | string | number> {
+function normalizeChildren(
+  children: VNodeChildren,
+): Array<VNode | string | number> {
   if (!children) return [];
   return Array.isArray(children)
     ? children.filter((child) => child != null && typeof child !== 'boolean')

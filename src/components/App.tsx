@@ -1,20 +1,14 @@
 // src/components/App.tsx
 
-import { FunctionalComponent } from '../core/vdom';
-import { usePulse } from '../core/hooks';
-import { appStore } from '../store';
+import { FunctionalComponent } from 'core/types';
 import { Counter } from './Counter';
 import { UserProfile } from './UserProfile';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { Alert } from './Alert';
 
 export const App: FunctionalComponent = () => {
-  const [theme] = usePulse('theme', appStore);
-
   return (
-    <div
-      className={`min-h-screen p-8 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}
-    >
+    <div className="min-h-screen p-8 dark:bg-gray-900 dark:text-white bg-gray-100 text-gray-900">
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">NovaUI App</h1>
         {/* Assign a unique key to ThemeSwitcher */}

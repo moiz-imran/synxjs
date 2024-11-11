@@ -5,13 +5,13 @@ import { PulseStore } from './core/store';
 /**
  * Define the shape of your global state
  */
-export interface AppState {
+export interface AppState extends Record<string, unknown> {
   count: number;
   alertVisible: boolean;
   theme: 'light' | 'dark';
 }
 
-export interface UserState {
+export interface UserState extends Record<string, unknown> {
   userName: string;
 }
 

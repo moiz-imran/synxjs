@@ -1,7 +1,7 @@
 // src/components/UserProfile.tsx
 
-import { FunctionalComponent } from '../core/vdom';
-import { usePulse } from '../core/hooks';
+import { FunctionalComponent } from 'core/types';
+import { usePulse } from 'core/hooks';
 import { Button } from './Button';
 import { userStore } from '../store';
 

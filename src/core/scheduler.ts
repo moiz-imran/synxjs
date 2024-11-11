@@ -1,13 +1,12 @@
 // src/core/scheduler.ts
 
 import {
-  FunctionalComponentInstance,
   resetCurrentComponent,
   setCurrentComponent,
-  runEffects
+  runEffects,
 } from './hooks';
 import { diff } from './diff';
-import { VNode } from './vdom';
+import type { FunctionalComponentInstance, VNode } from './types';
 
 const pendingUpdates = new Set<FunctionalComponentInstance>();
 let isScheduled = false;

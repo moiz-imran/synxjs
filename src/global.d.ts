@@ -2,13 +2,13 @@
 
 // Declare createElement globally
 declare function createElement(
-  type: keyof JSX.IntrinsicElements | Function,
-  props?: any,
-  ...children: any[]
-): VNode;
+  type: unknown,
+  props?: unknown,
+  ...children: unknown[]
+): unknown;
 
 // Declare Fragment globally
-declare const Fragment: (props: { children: any }) => any;
+declare const Fragment: (props: { children: unknown }) => unknown;
 
 // Define the JSX namespace and IntrinsicElements
 declare namespace JSX {
@@ -52,7 +52,7 @@ interface AnchorAttributes<T> extends HTMLAttributes<T> {
 
 // Define button-specific attributes
 interface ButtonAttributes<T> extends HTMLAttributes<T> {
-  type?: "button" | "submit" | "reset";
+  type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
 }
 
@@ -67,4 +67,3 @@ interface AriaAttributes {
 }
 
 // Add other specific attribute interfaces as needed
-

@@ -1,18 +1,21 @@
 // src/core/PulseStore.ts
 
 import { reactive, effect } from './reactive';
+import type { Store, Effect, CleanupFn, DeepPartial } from './types';
 
 /**
  * PulseStore manages a collection of pulses within the Nova system.
  */
-export class PulseStore<T extends Record<string, any>> {
+export class PulseStore<T extends object> implements Store<T> {
   private pulses: T;
+  private initialState: T;
 
   /**
    * Initializes the PulseStore with the provided initial pulses.
    * @param initialPulses - The initial state of pulses.
    */
   constructor(initialPulses: T) {
+    this.initialState = { ...initialPulses };
     this.pulses = reactive(initialPulses);
   }
 
@@ -46,8 +49,15 @@ export class PulseStore<T extends Record<string, any>> {
    * Updates the pulses.
    * @param newPulses - Partial pulses to merge with the existing state.
    */
-  setPulses<K extends keyof T>(newPulses: Pick<T, K>): void {
+  setPulses(newPulses: DeepPartial<T>): void {
     Object.assign(this.pulses, newPulses);
+  }
+
+  /**
+   * Resets the pulses to the initial state.
+   */
+  reset(): void {
+    this.setPulses(this.initialState);
   }
 
   /**
@@ -55,7 +65,7 @@ export class PulseStore<T extends Record<string, any>> {
    * @param listener - The callback to invoke when pulses change.
    * @returns A function to unsubscribe the listener.
    */
-  subscribe(key: keyof T, callback: () => void): () => void {
+  subscribe(key: keyof T, callback: Effect): CleanupFn {
     return effect(() => {
       this.getPulse(key);
       callback();

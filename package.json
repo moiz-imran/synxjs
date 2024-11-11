@@ -4,6 +4,7 @@
   "main": "index.js",
   "author": "Moiz Imran <moiz.imran@tintash.com>",
   "license": "MIT",
+  "type": "module",
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-transform-react-jsx": "^7.25.9",
@@ -15,8 +16,8 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.8.6",
-    "@typescript-eslint/eslint-plugin": "^8.12.2",
-    "@typescript-eslint/parser": "^8.12.2",
+    "@typescript-eslint/eslint-plugin": "^8.13.0",
+    "@typescript-eslint/parser": "^8.13.0",
     "autoprefixer": "^10.4.20",
     "babel-loader": "^9.2.1",
     "css-loader": "^7.1.2",

@@ -1,5 +1,12 @@
 // src/core/vdom.ts
 
+import type {
+  FunctionalComponent,
+  VNode,
+  VNodeChildren,
+  VNodeProps,
+} from './types';
+
 /**
  * **Virtual DOM (VNode) Definition and Factory Function**
  *
@@ -7,36 +14,6 @@
  * factory function `createElement` to create these nodes. It supports both intrinsic
  * DOM elements (like 'div', 'button') and functional components.
  */
-
-/**
- * **VNode Type**
- *
- * Represents a Virtual DOM node.
- *
- * - `type`: Can be either a string (for intrinsic DOM elements) or a `FunctionalComponent`.
- * - `props`: An object containing properties/attributes of the element.
- * - `children`: Can be a single `VNode`, a string/number (for text nodes), or an array of `VNodes`.
- */
-export type VNode = {
-  type: string | FunctionalComponent<any>;
-  props?: Record<string, any>;
-  children?: VNode[] | string | number;
-};
-
-/**
- * **FunctionalComponent Type**
- *
- * Represents a functional component.
- *
- * - Accepts props of type `P`.
- * - Returns a `VNode`, string, number, or `null`.
- *
- * This type allows for strong typing of component props and ensures that components
- * return valid VNodes for rendering.
- */
-export type FunctionalComponent<P = {}> = (
-  props: P,
-) => VNode | string | number | null;
 
 /**
  * **Fragment Type**
@@ -83,23 +60,23 @@ export const Fragment = Symbol('Fragment');
  * ```
  */
 export function createElement<P>(
-  type: string | FunctionalComponent<P> | typeof Fragment,
+  type: string | FunctionalComponent | typeof Fragment,
   props: P = {} as P,
-  ...children: any[]
+  ...children: VNodeChildren
 ): VNode {
   // Handle Fragment type by directly returning its children
   if (type === Fragment) {
     return {
       type: typeof Fragment,
       props: {},
-      children: children.length === 1 ? children[0] : children,
+      children: children.length === 1 ? [children[0]] : children,
     };
   }
 
   return {
     type,
-    props: props as Record<string, any>,
-    children: children.length === 1 ? children[0] : children,
+    props: props as VNodeProps,
+    children: children.length === 1 ? [children[0]] : children,
   };
 }
 
@@ -116,7 +93,7 @@ export function createElement<P>(
  *
  * - `true` if `node` is a `VNode`, `false` otherwise.
  */
-export function isVNode(node: any): node is VNode {
+export function isVNode(node: unknown): node is VNode {
   return typeof node === 'object' && node !== null && 'type' in node;
 }
 
@@ -134,8 +111,8 @@ export function isVNode(node: any): node is VNode {
  * - `true` if `type` is a `FunctionalComponent`, `false` otherwise.
  */
 export function isFunctionalComponent(
-  type: any,
-): type is FunctionalComponent<any> {
+  type: unknown,
+): type is FunctionalComponent<unknown> {
   return typeof type === 'function';
 }
 

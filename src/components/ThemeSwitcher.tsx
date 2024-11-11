@@ -1,13 +1,14 @@
 // src/components/ThemeSwitcher.tsx
 
-import { useEffect, usePulse } from '../core/hooks';
-import { FunctionalComponent } from '../core/vdom';
+import { useEffect, usePulse } from 'core/hooks';
+import { FunctionalComponent } from 'core/types';
 import { appStore } from '../store';
 
 export const ThemeSwitcher: FunctionalComponent = () => {
   const [theme, setTheme] = usePulse('theme', appStore);
 
   useEffect(() => {
+    console.log('theme', theme);
     const applyTheme = () => {
       const root = document.documentElement;
       if (theme === 'dark') {

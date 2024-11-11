@@ -14,10 +14,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "*": [
-        "./src/*"
+      "core/*": [
+        "src/core/*"
       ]
     }
   },

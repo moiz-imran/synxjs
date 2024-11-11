@@ -1,5 +1,3 @@
-// src/index.ts
-
 import { createElement } from './core/vdom';
 import { App } from './components/App';
 import { renderApp } from './core/renderer';
@@ -15,7 +13,7 @@ import './styles/tailwind.css';
  */
 const root = document.getElementById('root');
 if (root) {
-  renderApp(root, <App />);
+  renderApp(root, createElement(App));
 } else {
   console.error('Root container not found!');
 }

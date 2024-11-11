@@ -4,10 +4,10 @@ import {
   componentInstanceCache,
   domToInstanceMap,
 } from '../core/renderer';
-import { FunctionalComponent, VNode } from '../core/vdom';
 import { usePulse, useState } from '../core/hooks';
 import { setCurrentComponent, resetCurrentComponent } from '../core/hooks';
 import { PulseStore } from '../core/store';
+import type { FunctionalComponent, VNode } from '../core/types';
 
 interface AppProps {
   theme?: 'light' | 'dark';
@@ -33,7 +33,7 @@ describe('Component Diffing', () => {
       const Counter: FunctionalComponent = () => ({
         type: 'div',
         props: { className: 'counter' },
-        children: '0',
+        children: ['0'],
       });
 
       const counterVNode: VNode = {
@@ -63,7 +63,7 @@ describe('Component Diffing', () => {
       const Counter: FunctionalComponent = () => ({
         type: 'div',
         props: { className: 'counter' },
-        children: '0',
+        children: ['0'],
       });
 
       const counterVNode: VNode = {
@@ -97,7 +97,7 @@ describe('Component Diffing', () => {
           {
             type: 'div',
             props: { className: 'counter' },
-            children: '0',
+            children: ['0'],
           },
         ],
       });

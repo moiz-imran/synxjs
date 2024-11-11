@@ -1,8 +1,8 @@
 // src/components/Alert.tsx
 
 import { appStore } from '../store';
-import { usePulse } from '../core/hooks';
-import { FunctionalComponent } from '../core/vdom';
+import { usePulse } from 'core/hooks';
+import { FunctionalComponent } from 'core/types';
 import { Button } from './Button';
 
 interface AlertProps {

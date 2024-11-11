@@ -1,19 +1,24 @@
 // src/core/renderer.ts
 
-import { VNode, FunctionalComponent } from './vdom';
-import {
-  setCurrentComponent,
-  resetCurrentComponent,
+import { setCurrentComponent, resetCurrentComponent } from './hooks';
+import type {
+  VNode,
+  FunctionalComponent,
   FunctionalComponentInstance,
-} from './hooks';
-import { diff } from './diff';
+  VNodeProps,
+  VNodeChildren,
+  VNodeChild,
+} from './types';
 
 // Core state management
 export const componentInstanceCache = new WeakMap<
   VNode & object,
   FunctionalComponentInstance
 >();
-export const domToInstanceMap = new Map<HTMLElement | Text, FunctionalComponentInstance>();
+export const domToInstanceMap = new Map<
+  HTMLElement | Text,
+  FunctionalComponentInstance
+>();
 
 /**
  * Renders the entire application into the specified container.
@@ -54,8 +59,9 @@ export function render(
  * Renders a functional component.
  */
 function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
-  const instance = componentInstanceCache.get(node as VNode & object) ||
-                  createFunctionalComponentInstance(node);
+  const instance =
+    componentInstanceCache.get(node as VNode & object) ||
+    createFunctionalComponentInstance(node);
 
   try {
     setCurrentComponent(instance);
@@ -87,18 +93,20 @@ function renderIntrinsicElement(node: VNode): HTMLElement {
 /**
  * Applies props to a DOM element.
  */
-function applyProps(element: HTMLElement, props: Record<string, any>): void {
+function applyProps(element: HTMLElement, props: VNodeProps): void {
   Object.entries(props).forEach(([key, value]) => {
     if (key === 'children') return;
-
     if (key.startsWith('on') && typeof value === 'function') {
-      element.addEventListener(key.slice(2).toLowerCase(), value);
+      element.addEventListener(
+        key.slice(2).toLowerCase(),
+        value as EventListener,
+      );
     } else if (key === 'className') {
-      element.setAttribute('class', value);
+      element.setAttribute('class', String(value));
     } else if (key === 'style' && typeof value === 'object') {
       Object.assign(element.style, value);
     } else {
-      element.setAttribute(key, value);
+      element.setAttribute(key, String(value));
     }
   });
 }
@@ -106,15 +114,17 @@ function applyProps(element: HTMLElement, props: Record<string, any>): void {
 /**
  * Renders children of an element.
  */
-function renderChildren(element: HTMLElement, children: any): void {
+function renderChildren(element: HTMLElement, children: VNodeChildren): void {
   if (!children) return;
 
-  const appendChild = (child: any) => {
-    if (child === undefined || child === null) return;
+  const appendChild = (child: VNodeChild) => {
+    if (child === undefined || child === null || typeof child === 'boolean')
+      return;
 
-    const childDom = typeof child === 'string' || typeof child === 'number'
-      ? document.createTextNode(String(child))
-      : render(child);
+    const childDom =
+      typeof child === 'string' || typeof child === 'number'
+        ? document.createTextNode(String(child))
+        : render(child);
 
     if (childDom) element.appendChild(childDom);
   };
@@ -140,7 +150,7 @@ export function createFunctionalComponentInstance(
       instance.currentHook = 0;
       try {
         setCurrentComponent(instance);
-        return (vnode.type as FunctionalComponent<any>)(vnode.props || {});
+        return (vnode.type as FunctionalComponent<unknown>)(vnode.props || {});
       } finally {
         resetCurrentComponent();
       }
@@ -154,7 +164,7 @@ export function createFunctionalComponentInstance(
 
 export function unmountComponent(instance: FunctionalComponentInstance): void {
   // Clean up hooks
-  instance.hooks.forEach(hook => {
+  instance.hooks.forEach((hook) => {
     if ('cleanup' in hook && typeof hook.cleanup === 'function') {
       hook.cleanup();
     }

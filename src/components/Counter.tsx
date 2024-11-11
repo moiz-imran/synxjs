@@ -1,7 +1,7 @@
 // src/components/Counter.tsx
 
-import { FunctionalComponent } from '../core/vdom';
-import { usePulse } from '../core/hooks';
+import { FunctionalComponent } from 'core/types';
+import { usePulse } from 'core/hooks';
 import { appStore } from '../store';
 import { Button } from './Button';
 

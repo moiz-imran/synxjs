@@ -1,35 +1,23 @@
 // src/core/hooks.ts
 
-import { VNode } from './vdom';
+import type {
+  CallbackHook,
+  Effect,
+  EffectHook,
+  FunctionalComponentInstance,
+  Hook,
+  PulseHook,
+  Setter,
+  StateHook,
+  HookType,
+} from './types';
 import { scheduleUpdate } from './scheduler';
 import { PulseStore } from './store';
-
-type Setter<T> = (newValue: T | ((prev: T) => T)) => void;
-type Effect = () => void | (() => void);
-
-/**
- * Represents a functional component instance.
- */
-export interface FunctionalComponentInstance {
-  hooks: any[];
-  currentHook: number;
-  vnode: VNode | null;
-  render: () => VNode | number | string | null;
-  dom: HTMLElement | Text | null; // Reference to the actual DOM node
-}
 
 /**
  * Hook Stack to manage the rendering context.
  */
 let hookStack: FunctionalComponentInstance[] = [];
-
-/**
- * Pulse Subscriptions Map to track subscriptions per component instance
- */
-const pulseSubscriptions = new WeakMap<
-  FunctionalComponentInstance,
-  Map<string, () => void>
->();
 
 /**
  * Effects Array to store effects per functional component instance
@@ -40,7 +28,7 @@ const effects: Effect[] = [];
  * Sets the current functional component by pushing it onto the stack.
  * @param component - The functional component instance being rendered.
  */
-export function setCurrentComponent(component: FunctionalComponentInstance) {
+export function setCurrentComponent(component: FunctionalComponentInstance): void {
   // Check if the instance is already in the stack
   const existingIndex = hookStack.findIndex((comp) => comp === component);
   if (existingIndex !== -1) {
@@ -53,7 +41,7 @@ export function setCurrentComponent(component: FunctionalComponentInstance) {
 /**
  * Resets the current functional component by popping it off the stack.
  */
-export function resetCurrentComponent() {
+export function resetCurrentComponent(): void {
   if (hookStack.length > 0) {
     hookStack.pop();
   }
@@ -73,14 +61,14 @@ function getCurrentComponent(): FunctionalComponentInstance {
 /**
  * Resets the hooks index for the current functional component before each render.
  */
-export function resetHooks() {
+export function resetHooks(): void {
   const current = getCurrentComponent();
   if (current) {
     current.currentHook = 0;
   }
 }
 
-export function resetHookStack() {
+export function resetHookStack(): void {
   hookStack = [];
 }
 
@@ -95,26 +83,28 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
   const hookIndex = component.currentHook++;
 
   if (hooks[hookIndex] === undefined) {
-    hooks[hookIndex] = initialValue;
+    const hook: StateHook<T> = {
+      type: 'state',
+      value: initialValue,
+      setValue: null!, // Will be set below
+    };
+    hooks[hookIndex] = hook as Hook;
   }
 
-  const setState: Setter<T> = (newValue) => {
-    const valueToSet =
-      typeof newValue === 'function'
-        ? (newValue as (prev: T) => T)(hooks[hookIndex])
+  const hook = hooks[hookIndex] as StateHook<T>;
+
+  if (!hook.setValue) {
+    hook.setValue = (newValue: T | ((prev: T) => T)) => {
+      const valueToSet = typeof newValue === 'function'
+        ? (newValue as (prev: T) => T)(hook.value)
         : newValue;
 
-    hooks[hookIndex] = valueToSet;
-    scheduleUpdate(component);
-  };
+      hook.value = valueToSet;
+      scheduleUpdate(component);
+    };
+  }
 
-  return [hooks[hookIndex], setState];
-}
-
-interface EffectHook {
-  cleanup: (() => void) | void;
-  effect: Effect;
-  deps?: any[];
+  return [hook.value, hook.setValue];
 }
 
 /**
@@ -122,31 +112,31 @@ interface EffectHook {
  * @param effect - The effect callback to execute.
  * @param deps - An array of dependencies for the effect.
  */
-export function useEffect(effect: Effect, deps?: any[]): void {
+export function useEffect(effect: Effect, deps?: unknown[]): void {
   const component = getCurrentComponent();
   const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
   const prevHook = hooks[hookIndex] as EffectHook | undefined;
-  const hasChanged = !prevHook?.deps ||
+  const hasChanged =
+    !prevHook?.deps ||
     !deps ||
     deps.some((dep, i) => !Object.is(dep, prevHook.deps?.[i]));
 
   if (hasChanged) {
-    // Run cleanup from previous effect if it exists
     if (prevHook?.cleanup) {
       prevHook.cleanup();
     }
 
     const hook: EffectHook = {
+      type: 'effect',
       effect,
       deps,
-      cleanup: undefined
+      cleanup: undefined,
     };
 
     hooks[hookIndex] = hook;
     effects.push(() => {
-      // Run effect and store its cleanup
       hook.cleanup = effect();
     });
   }
@@ -156,13 +146,8 @@ export function useEffect(effect: Effect, deps?: any[]): void {
  * Runs all pending effects.
  */
 export function runEffects(): void {
-  effects.forEach(effect => effect());
+  effects.forEach((effect) => effect());
   effects.length = 0;
-}
-
-interface PulseHook<T> {
-  value: T;
-  unsubscribe?: () => void;
 }
 
 /**
@@ -171,7 +156,7 @@ interface PulseHook<T> {
  * @param context - The PulseStore context.
  * @returns A tuple containing the current value and a setter function.
  */
-export function usePulse<K extends keyof T, T extends Record<string, any>>(
+export function usePulse<K extends keyof T, T extends Record<string, unknown>>(
   selector: K,
   store: PulseStore<T>,
 ): [T[K], Setter<T[K]>] {
@@ -179,14 +164,13 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
   const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
-  // Initialize the hook if it doesn't exist
   if (hooks[hookIndex] === undefined) {
     const initialValue = store.getPulse(selector);
     const hook: PulseHook<T[K]> = {
+      type: 'pulse',
       value: initialValue,
     };
 
-    // Set up subscription only once during initialization
     hook.unsubscribe = store.subscribe(selector, () => {
       const newValue = store.getPulse(selector);
       if (!Object.is(hook.value, newValue)) {
@@ -200,14 +184,17 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
 
   const hook = hooks[hookIndex] as PulseHook<T[K]>;
 
-  const setter: Setter<T[K]> = useCallback((newValue) => {
-    if (typeof newValue === 'function') {
-      const updater = newValue as (prev: T[K]) => T[K];
-      store.setPulse(selector, updater(store.getPulse(selector)));
-    } else {
-      store.setPulse(selector, newValue);
-    }
-  }, [selector]);
+  const setter: Setter<T[K]> = useCallback(
+    (newValue: T[K] | ((prev: T[K]) => T[K])) => {
+      if (typeof newValue === 'function') {
+        const updater = newValue as (prev: T[K]) => T[K];
+        store.setPulse(selector, updater(store.getPulse(selector)));
+      } else {
+        store.setPulse(selector, newValue);
+      }
+    },
+    [selector],
+  );
 
   return [hook.value, setter];
 }
@@ -218,29 +205,32 @@ export function usePulse<K extends keyof T, T extends Record<string, any>>(
  * @param deps - An array of dependencies for the callback.
  * @returns The memoized callback function.
  */
-export function useCallback<T extends (...args: any[]) => any>(
+export function useCallback<T extends (...args: never[]) => unknown>(
   callback: T,
-  deps?: any[]
+  deps?: unknown[],
 ): T {
   const component = getCurrentComponent();
   const hooks = component.hooks;
   const hookIndex = component.currentHook++;
 
   if (hooks[hookIndex] === undefined || !deps) {
-    hooks[hookIndex] = {
+    const hook: CallbackHook<T> = {
+      type: 'callback',
       callback,
-      deps
+      deps: deps || [],
     };
+    hooks[hookIndex] = hook;
   } else {
-    const prevHook = hooks[hookIndex];
+    const prevHook = hooks[hookIndex] as CallbackHook<T>;
     const hasChanged = !deps || deps.some((dep, i) => !Object.is(dep, prevHook.deps[i]));
     if (hasChanged) {
       hooks[hookIndex] = {
+        type: 'callback',
         callback,
-        deps
-      };
+        deps,
+      } as CallbackHook<T>;
     }
   }
 
-  return hooks[hookIndex].callback;
+  return (hooks[hookIndex] as CallbackHook<T>).callback;
 }
