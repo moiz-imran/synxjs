@@ -9,7 +9,7 @@ import type {
   PulseHook,
   Setter,
   StateHook,
-  HookType,
+  MountHook,
 } from './types';
 import { scheduleUpdate } from './scheduler';
 import { PulseStore } from './store';
@@ -110,7 +110,7 @@ export function useState<T>(initialValue: T): [T, Setter<T>] {
 /**
  * useEffect Hook
  * @param effect - The effect callback to execute.
- * @param deps - An array of dependencies for the effect.
+ * @param deps - An array of dependencies for the effect. Pass [] for mount-only effect.
  */
 export function useEffect(effect: Effect, deps?: unknown[]): void {
   const component = getCurrentComponent();
@@ -118,8 +118,10 @@ export function useEffect(effect: Effect, deps?: unknown[]): void {
   const hookIndex = component.currentHook++;
 
   const prevHook = hooks[hookIndex] as EffectHook | undefined;
-  const hasChanged =
-    !prevHook?.deps ||
+
+  // On mount or when deps change
+  const hasChanged = !prevHook ||
+    !prevHook.deps ||
     !deps ||
     deps.some((dep, i) => !Object.is(dep, prevHook.deps?.[i]));
 
@@ -139,6 +141,28 @@ export function useEffect(effect: Effect, deps?: unknown[]): void {
     effects.push(() => {
       hook.cleanup = effect();
     });
+  }
+}
+
+/**
+ * useMount Hook - Runs callback exactly once when component mounts
+ * @param callback - The callback to execute on mount
+ */
+export function useMount(callback: () => void): void {
+  const component = getCurrentComponent();
+  const hooks = component.hooks;
+  const hookIndex = component.currentHook++;
+
+  if (hooks[hookIndex] === undefined) {
+    const hook: MountHook = {
+      type: 'mount',
+      hasRun: false,
+    };
+    hooks[hookIndex] = hook;
+
+    // Run immediately on mount
+    callback();
+    hook.hasRun = true;
   }
 }
 

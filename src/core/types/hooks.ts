@@ -9,7 +9,7 @@ export interface BaseHook {
   id?: symbol; // For debugging
 }
 
-export type HookType = 'state' | 'effect' | 'pulse' | 'callback' | 'memo';
+export type HookType = 'state' | 'effect' | 'pulse' | 'callback' | 'memo' | 'mount';
 
 export interface StateHook<T = unknown> extends BaseHook {
   type: 'state';
@@ -42,9 +42,15 @@ export interface MemoHook<T> extends BaseHook {
   deps: unknown[];
 }
 
+export interface MountHook extends BaseHook {
+  type: 'mount';
+  hasRun: boolean;
+}
+
 export type Hook =
   | StateHook
   | EffectHook
   | PulseHook<unknown>
   | CallbackHook<AnyFunction>
-  | MemoHook<unknown>;
+  | MemoHook<unknown>
+  | MountHook;

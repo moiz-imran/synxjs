@@ -1,33 +1,30 @@
-// src/components/ThemeSwitcher.tsx
-
-import { useEffect, usePulse } from 'core/hooks';
+import { useEffect, useMount, usePulse } from 'core/hooks';
 import { FunctionalComponent } from 'core/types';
 import { appStore } from '../store';
+
+const applyTheme = (theme: string) => {
+  const root = document.documentElement;
+  if (theme === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+};
 
 export const ThemeSwitcher: FunctionalComponent = () => {
   const [theme, setTheme] = usePulse('theme', appStore);
 
   useEffect(() => {
-    console.log('theme', theme);
-    const applyTheme = () => {
-      const root = document.documentElement;
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-
-    applyTheme();
+    applyTheme(theme);
   }, [theme]);
+
+  useMount(() => {
+    applyTheme(theme);
+  });
 
   return (
     <button
-      className={`px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-        theme === 'light'
-          ? 'bg-gray-800 text-white'
-          : 'bg-yellow-300 text-black'
-      }`}
+      className="px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-800 text-white dark:bg-yellow-300 dark:text-black"
       onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
     >
       Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
