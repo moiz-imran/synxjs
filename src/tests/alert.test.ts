@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { renderVNode } from '../core/diff';
 import type { VNode, FunctionalComponent } from '../core/types';
 import { PulseStore } from '../core/store';

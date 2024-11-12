@@ -8,9 +8,9 @@ declare function createElement(
 ): VNode;
 
 declare global {
-  window = {
-    createElement: typeof createElement,
-  };
+  interface Window {
+    createElement: typeof createElement;
+  }
 }
 
 // Declare Fragment globally

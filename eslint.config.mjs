@@ -9,7 +9,13 @@ import prettierPlugin from 'eslint-plugin-prettier';
 export default [
   eslint.configs.recommended,
   {
-    ignores: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*', '*.config.*']
+    ignores: [
+      'dist/**/*',
+      'node_modules/**/*',
+      'coverage/**/*',
+      '*.config.*',
+      '*.setup.*',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -20,12 +26,12 @@ export default [
         sourceType: 'module',
         project: './tsconfig.json',
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
-        browser: true
-      }
+        browser: true,
+      },
     },
     plugins: {
       '@typescript-eslint': tseslint,
@@ -41,18 +47,18 @@ export default [
       '@typescript-eslint/no-unsafe-call': 'warn',
       '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/restrict-template-expressions': 'warn',
-      '@typescript-eslint/unbound-method': 'warn'
+      '@typescript-eslint/unbound-method': 'warn',
     },
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       globals: {
-        browser: true
-      }
+        browser: true,
+      },
     },
     plugins: {
-      'prettier': prettierPlugin,
+      prettier: prettierPlugin,
     },
     settings: {
       react: {
@@ -64,5 +70,5 @@ export default [
       'no-console': ['error', { allow: ['warn', 'error'] }],
       'no-undef': 'off',
     },
-  }
+  },
 ];
