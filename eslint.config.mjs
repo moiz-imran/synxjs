@@ -3,8 +3,14 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tseslintParser from '@typescript-eslint/parser';
 import prettierPlugin from 'eslint-plugin-prettier';
 
+/**
+ * @type {import('eslint').Linter.Config[]}
+ */
 export default [
   eslint.configs.recommended,
+  {
+    ignores: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*', '*.config.*']
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -36,7 +42,7 @@ export default [
       '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/restrict-template-expressions': 'warn',
       '@typescript-eslint/unbound-method': 'warn'
-    }
+    },
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -55,8 +61,8 @@ export default [
     },
     rules: {
       'prettier/prettier': 'error',
-      'no-console': 'warn',
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       'no-undef': 'off',
-    }
+    },
   }
 ];

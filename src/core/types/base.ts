@@ -1,5 +1,6 @@
 // Common primitive types
 export type Primitive = string | number | boolean | null | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyFunction = (...args: any[]) => any;
 export type VoidFunction = () => void;
 

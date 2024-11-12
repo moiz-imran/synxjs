@@ -16,6 +16,5 @@ const root = document.getElementById('root');
 if (root) {
   renderApp(root, (<App />) as VNode);
 } else {
-  // eslint-disable-next-line no-console
   console.error('Root container not found!');
 }

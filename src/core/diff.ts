@@ -29,7 +29,7 @@ export function renderVNode(
 
   // Handle functional components
   if (typeof node.type === 'function') {
-    return renderFunctionalVNode(node, parentInstance);
+    return renderFunctionalVNode(node);
   }
 
   // Handle regular DOM elements
@@ -39,13 +39,9 @@ export function renderVNode(
 /**
  * Renders a functional component VNode
  */
-function renderFunctionalVNode(
-  node: VNode,
-  parentInstance?: FunctionalComponentInstance,
-): DOMNode | null {
+function renderFunctionalVNode(node: VNode): DOMNode | null {
   const instance =
-    componentInstanceCache.get(node as VNode) ||
-    createFunctionalComponentInstance(node);
+    componentInstanceCache.get(node) || createFunctionalComponentInstance(node);
 
   const renderedNode = instance.render();
   const dom = renderVNode(renderedNode, instance);

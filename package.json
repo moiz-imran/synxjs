@@ -4,7 +4,6 @@
   "main": "index.js",
   "author": "Moiz Imran <moiz.imran@tintash.com>",
   "license": "MIT",
-  "type": "module",
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@babel/plugin-transform-react-jsx": "^7.25.9",
@@ -45,6 +44,7 @@
     "build": "webpack",
     "start": "webpack serve --open",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "lint": "eslint --fix ."
   }
 }

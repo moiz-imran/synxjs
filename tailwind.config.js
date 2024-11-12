@@ -1,5 +1,4 @@
-// tailwind.config.js
-
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   mode: 'jit', // Just-In-Time mode for optimized builds
   content: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'], // Purge unused styles
@@ -13,8 +12,8 @@ module.exports = {
         // Add more custom colors as needed
       },
       spacing: {
-        '72': '18rem',
-        '84': '21rem',
+        72: '18rem',
+        84: '21rem',
         // Extend spacing scale
       },
       // Extend other design tokens as needed
