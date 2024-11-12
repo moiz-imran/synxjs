@@ -1,6 +1,6 @@
-# NovaUI
+# SynxJS
 
-NovaUI is a minimalist frontend framework inspired by React, designed to provide a seamless developer experience with built-in state management, routing, and component-based architecture.
+SynxJS is a minimalist frontend framework inspired by React, designed to provide a seamless developer experience with built-in state management, routing, and component-based architecture.
 
 ## Features
 
@@ -23,5 +23,5 @@ NovaUI is a minimalist frontend framework inspired by React, designed to provide
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/novaui.git
-   cd novaui
+   git clone https://github.com/yourusername/synxjs.git
+   cd synxjs

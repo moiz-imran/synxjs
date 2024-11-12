@@ -4,7 +4,7 @@ import { reactive, effect } from './reactive';
 import type { Store, Effect, CleanupFn, DeepPartial } from './types';
 
 /**
- * PulseStore manages a collection of pulses within the Nova system.
+ * PulseStore manages a collection of pulses within the SynxJS system.
  */
 export class PulseStore<T extends object> implements Store<T> {
   private pulses: T;
