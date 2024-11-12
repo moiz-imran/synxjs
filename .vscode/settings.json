@@ -1,11 +1,11 @@
 {
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-  "typescript.validate.enable": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
   },
   "eslint.validate": [
     "typescript",
     "typescriptreact"
-  ]
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

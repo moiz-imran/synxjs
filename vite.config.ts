@@ -27,9 +27,6 @@ export default defineConfig({
     cssCodeSplit: true,
     minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false,
   },
-  css: {
-    postcss: './postcss.config.js'
-  },
   server: {
     port: 9000,
     open: true,

@@ -1,0 +1,27 @@
+{
+  "name": "@synxjs/hooks",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": ["dist/**"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "@synxjs/types": "workspace:*",
+    "@synxjs/runtime": "workspace:*",
+    "@synxjs/store": "workspace:*",
+    "@synxjs/reactivity": "workspace:*",
+    "@synxjs/vdom": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsup": "^8.0.0",
+    "eslint": "^8.56.0"
+  }
+}

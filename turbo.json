@@ -1,18 +1,41 @@
 {
-  "$schema": "https://turborepo.org/schema.json",
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
     "test": {
-      "outputs": [],
+      "dependsOn": ["build"],
       "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts"]
     },
-    "lint": {
-      "outputs": []
-    },
+    "lint": {},
     "dev": {
+      "cache": false
+    },
+    "example-app#dev": {
+      "persistent": true
+    },
+    "@synxjs/reactivity#dev": {
+      "dependsOn": ["@synxjs/types#dev"]
+    },
+    "@synxjs/instance#dev": {
+      "dependsOn": ["@synxjs/types#dev", "@synxjs/runtime#dev"]
+    },
+    "@synxjs/vdom#dev": {
+      "dependsOn": ["@synxjs/instance#dev"]
+    },
+    "@synxjs/hooks#dev": {
+      "dependsOn": ["@synxjs/vdom#dev"]
+    },
+    "@synxjs/store#dev": {
+      "dependsOn": ["@synxjs/reactivity#dev"]
+    },
+    "@synxjs/core#dev": {
+      "dependsOn": ["@synxjs/hooks#dev", "@synxjs/store#dev"]
+    },
+    "clean": {
       "cache": false
     }
   }
