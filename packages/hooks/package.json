@@ -10,6 +10,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
+    "test": "vitest --silent=false",
+    "test:watch": "vitest watch",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
@@ -20,8 +22,11 @@
     "@synxjs/vdom": "workspace:*"
   },
   "devDependencies": {
+    "@synxjs/instance": "workspace:*",
     "typescript": "^5.6.3",
     "tsup": "^8.0.0",
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
   }
 }
