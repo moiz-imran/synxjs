@@ -10,14 +10,15 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
+    "test": "vitest --silent=false --watch --coverage",
+    "test:coverage": "vitest --coverage",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@synxjs/types": "workspace:*"
+    "@synxjs/types": "workspace:*",
+    "@synxjs/runtime": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "tsup": "^8.0.1",
-    "eslint": "^8.56.0"
+    "@synxjs/vdom": "workspace:*"
   }
 }
