@@ -2,7 +2,11 @@ import {
   componentInstanceCache,
   createFunctionalComponentInstance,
 } from '@synxjs/instance';
-import { VNode, FunctionalComponentInstance } from '@synxjs/types';
+import {
+  VNode,
+  FunctionalComponentInstance,
+  FunctionalComponent,
+} from '@synxjs/types';
 import { updateAttributes } from './attributes';
 
 type DOMNode = HTMLElement | Text;
@@ -23,7 +27,7 @@ export function renderVNode(
 
   // Handle functional components
   if (typeof node.type === 'function') {
-    return renderFunctionalVNode(node);
+    return renderFunctionalVNode(node as VNode<FunctionalComponent>);
   }
 
   // Handle regular DOM elements
@@ -33,9 +37,12 @@ export function renderVNode(
 /**
  * Renders a functional component VNode
  */
-function renderFunctionalVNode(node: VNode): DOMNode | null {
+function renderFunctionalVNode(
+  node: VNode<FunctionalComponent>,
+): DOMNode | null {
   const instance =
-    componentInstanceCache.get(node) || createFunctionalComponentInstance(node);
+    componentInstanceCache.get(node) ||
+    createFunctionalComponentInstance(node as VNode<FunctionalComponent>);
 
   const renderedNode = instance.render();
   const dom = renderVNode(renderedNode, instance);

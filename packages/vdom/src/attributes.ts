@@ -6,33 +6,31 @@ export function updateAttributes(
   oldProps: VNodeProps,
 ): void {
   // Remove old properties
-  Object.keys(oldProps).forEach((key) => {
-    if (key === 'children') return;
-    if (!(key in newProps)) {
-      if (key.startsWith('on')) {
-        const eventName = key.slice(2).toLowerCase();
-        element.removeEventListener(eventName, oldProps[key] as EventListener);
-      } else {
-        element.removeAttribute(key);
-      }
+  for (const name in oldProps) {
+    if (name !== 'children' && !(name in newProps)) {
+      element.removeAttribute(name);
     }
-  });
+  }
 
   // Set new properties
-  Object.entries(newProps).forEach(([key, value]) => {
-    if (key === 'children') return;
-    if (key.startsWith('on') && typeof value === 'function') {
-      const eventName = key.slice(2).toLowerCase();
-      if (oldProps[key]) {
-        element.removeEventListener(eventName, oldProps[key] as EventListener);
+  for (const name in newProps) {
+    if (name === 'children' || name === 'key' || name === 'ref') continue;
+
+    const value = newProps[name];
+    if (value === undefined || value === null) {
+      element.removeAttribute(name);
+    } else if (name.startsWith('on')) {
+      const eventName = name.slice(2).toLowerCase();
+      if (oldProps[name]) {
+        element.removeEventListener(eventName, oldProps[name] as EventListener);
       }
       element.addEventListener(eventName, value as EventListener);
-    } else if (key === 'className') {
+    } else if (name === 'className') {
       element.setAttribute('class', String(value));
-    } else if (key === 'style' && typeof value === 'object') {
+    } else if (name === 'style' && typeof value === 'object') {
       Object.assign(element.style, value);
     } else {
-      element.setAttribute(key, String(value));
+      element.setAttribute(name, String(value));
     }
-  });
+  }
 }

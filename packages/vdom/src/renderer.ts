@@ -1,14 +1,16 @@
-import type { VNode, VNodeChild } from '@synxjs/types';
+import type { FunctionalComponent, VNode, VNodeChild } from '@synxjs/types';
 import {
   componentInstanceCache,
   domToInstanceMap,
   createFunctionalComponentInstance,
 } from '@synxjs/instance';
 import { updateAttributes } from './attributes';
-import { setCurrentComponent, resetCurrentComponent } from '@synxjs/runtime';
+import { setCurrentComponent, resetCurrentComponent, getCurrentComponent } from '@synxjs/runtime';
 
 export function renderApp(container: HTMLElement, appVNode: VNode): void {
-  const rootInstance = createFunctionalComponentInstance(appVNode);
+  const rootInstance = createFunctionalComponentInstance(
+    appVNode as VNode<FunctionalComponent>,
+  );
   const newDom = render(rootInstance.render());
 
   if (newDom) {
@@ -36,8 +38,8 @@ export function render(
 
 function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
   const instance =
-    componentInstanceCache.get(node as VNode & object) ||
-    createFunctionalComponentInstance(node);
+    componentInstanceCache.get(node as VNode<FunctionalComponent>) ||
+    createFunctionalComponentInstance(node as VNode<FunctionalComponent>);
 
   try {
     setCurrentComponent(instance);

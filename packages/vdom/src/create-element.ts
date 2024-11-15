@@ -3,6 +3,7 @@ import type {
   VNode,
   VNodeChildren,
   VNodeProps,
+  VNodeType,
 } from '@synxjs/types';
 
 export const Fragment = Symbol('Fragment');
@@ -11,7 +12,7 @@ export function createElement<P extends VNodeProps>(
   type: string | FunctionalComponent<P> | typeof Fragment,
   props: P | null,
   ...children: VNodeChildren
-): VNode {
+): VNode<VNodeType> {
   const finalProps = props || ({} as P);
 
   const vnode: VNode = {
@@ -20,7 +21,7 @@ export function createElement<P extends VNodeProps>(
     children: children.flat(),
   };
 
-  return vnode;
+  return vnode as VNode;
 }
 
 export function isVNode(node: unknown): node is VNode {

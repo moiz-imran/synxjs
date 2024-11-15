@@ -1,4 +1,4 @@
-import type { Effect } from '@synxjs/types';
+import type { Effect, FunctionalComponentInstance } from '@synxjs/types';
 
 const effects: Effect[] = [];
 
@@ -15,4 +15,15 @@ export function runEffects(): void {
     }
   });
   effects.length = 0;
+}
+
+export function cleanupEffects(instance: FunctionalComponentInstance): void {
+  if (!instance.hooks) return;
+
+  for (const hook of instance.hooks) {
+    if (hook.type === 'effect' && hook.cleanup) {
+      hook.cleanup();
+      hook.cleanup = undefined;
+    }
+  }
 }

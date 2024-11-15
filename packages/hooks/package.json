@@ -10,8 +10,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
-    "test": "vitest --silent=false",
-    "test:watch": "vitest watch",
+    "test": "vitest --silent=false --coverage",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {

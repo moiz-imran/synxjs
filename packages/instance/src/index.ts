@@ -23,9 +23,9 @@ export function createFunctionalComponentInstance(
     vnode,
     render: () => {
       instance.currentHook = 0;
-      return (vnode.type as FunctionalComponent<unknown>)(
-        vnode.props || {},
-      ) as VNode;
+      return (instance.vnode.type as FunctionalComponent<unknown>)(
+        instance.vnode.props || {},
+      );
     },
     dom: null,
   };

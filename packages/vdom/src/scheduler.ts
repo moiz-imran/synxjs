@@ -3,6 +3,7 @@ import {
   runEffects,
   setCurrentComponent,
   resetCurrentComponent,
+  cleanupEffects,
 } from '@synxjs/runtime';
 import { diff } from './diff';
 
@@ -50,6 +51,7 @@ function processUpdates(): void {
 function updateComponent(instance: FunctionalComponentInstance): void {
   if (!instance.dom?.parentNode) {
     pendingUpdates.delete(instance);
+    cleanupEffects(instance);
     return;
   }
 
@@ -59,8 +61,10 @@ function updateComponent(instance: FunctionalComponentInstance): void {
   try {
     setCurrentComponent(instance);
     const newVNode = instance.render();
-    diff(newVNode, instance.vnode, parent, index);
-    instance.vnode = newVNode as VNode;
+    if (!newVNode) {
+      cleanupEffects(instance);
+    }
+    diff(newVNode as VNode, instance.vnode, parent, index);
   } finally {
     resetCurrentComponent();
   }

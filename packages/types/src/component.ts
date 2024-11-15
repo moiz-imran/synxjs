@@ -7,7 +7,7 @@ export type RenderResult = VNode | string | number | null;
 export interface FunctionalComponentInstance {
   hooks: Hook[];
   currentHook: number;
-  vnode: VNode;
+  vnode: VNode<FunctionalComponent>;
   render: () => RenderResult;
   dom: DOMNode | null;
 }
