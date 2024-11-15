@@ -75,12 +75,6 @@ export function usePulseEffect(effect: Effect): void {
 
   const hook = hooks[hookIndex] as EffectHook;
 
-  // Clean up previous effect if it exists
-  if (hook.cleanup) {
-    hook.cleanup();
-    hook.cleanup = undefined;
-  }
-
   // Register new effect and store its cleanup function
   hook.cleanup = reactiveEffect(() => {
     const result = effect();
