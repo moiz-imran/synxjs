@@ -17,17 +17,49 @@ const effectDependencies = new WeakMap<
  * @returns A reactive proxy of the target object.
  */
 export function reactive<T extends object>(target: T): T {
-  return new Proxy(target, {
-    get(obj: T, key: string | symbol): unknown {
-      track(obj, key);
-      return obj[key as keyof T];
+  // Need to recursively make nested objects reactive
+  const handler: ProxyHandler<T> = {
+    get(target: T, key: string | symbol): unknown {
+      const value = target[key as keyof T];
+
+      // Make nested objects reactive
+      if (typeof value === 'object' && value !== null) {
+        return reactive(value as object);
+      }
+
+      track(target, key);
+      return value;
     },
-    set(obj: T, key: string | symbol, value: unknown): boolean {
-      const result = Reflect.set(obj, key, value);
-      trigger(obj, key);
+    set(target: T, key: string | symbol, value: unknown): boolean {
+      const oldValue = target[key as keyof T];
+
+      // If setting a new object, make it reactive first
+      if (typeof value === "object" && value !== null) {
+        value = reactive(value as object);
+      }
+
+      const result = Reflect.set(target, key, value);
+
+      // Only trigger if value actually changed
+      if (oldValue !== value) {
+        trigger(target, key);
+
+        // If we're replacing an object, we need to re-run effects
+        // that depend on any of its properties
+        if (typeof oldValue === "object" && oldValue !== null) {
+          const depsMap = targetMap.get(oldValue);
+          if (depsMap) {
+            depsMap.forEach((effects) => {
+              effects.forEach((effect) => effect());
+            });
+          }
+        }
+      }
       return result;
     },
-  });
+  };
+
+  return new Proxy(target, handler);
 }
 
 /**

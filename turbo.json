@@ -1,6 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "daemon": true,
+  "ui": "tui",
+  "envMode": "strict",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,28 +15,8 @@
     },
     "lint": {},
     "dev": {
+      "persistent": true,
       "cache": false
-    },
-    "example-app#dev": {
-      "persistent": true
-    },
-    "@synxjs/reactivity#dev": {
-      "dependsOn": ["@synxjs/types#dev"]
-    },
-    "@synxjs/instance#dev": {
-      "dependsOn": ["@synxjs/types#dev", "@synxjs/runtime#dev"]
-    },
-    "@synxjs/vdom#dev": {
-      "dependsOn": ["@synxjs/instance#dev"]
-    },
-    "@synxjs/hooks#dev": {
-      "dependsOn": ["@synxjs/vdom#dev"]
-    },
-    "@synxjs/store#dev": {
-      "dependsOn": ["@synxjs/reactivity#dev"]
-    },
-    "@synxjs/core#dev": {
-      "dependsOn": ["@synxjs/hooks#dev", "@synxjs/store#dev"]
     },
     "clean": {
       "cache": false
