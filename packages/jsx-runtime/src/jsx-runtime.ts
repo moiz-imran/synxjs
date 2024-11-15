@@ -8,14 +8,14 @@ import type {
 export function jsx(
   type: string | FunctionalComponent,
   props: VNodeProps,
-  key?: string | number | null,
+  key: string | number | null,
 ): VNode {
   const { children, ...rest } = props;
   return {
     type,
     props: rest,
-    children: children as VNodeChildren,
-    key: key ?? undefined,
+    children: children as VNodeChildren || [],
+    key: key ?? props.key,
   };
 }
 
