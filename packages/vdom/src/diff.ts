@@ -5,7 +5,12 @@ import {
 } from '@synxjs/instance';
 import { updateAttributes } from './attributes';
 import { renderVNode } from './vnode-renderer';
-import { cleanupEffects, setCurrentComponent } from '@synxjs/runtime';
+import {
+  cleanupEffects,
+  resetCurrentComponent,
+  setCurrentComponent,
+} from '@synxjs/runtime';
+import { createElement } from './create-element';
 
 export function diff(
   newVNode: VNode | null,
@@ -15,7 +20,7 @@ export function diff(
 ): void {
   const existingElement = parent.childNodes[index] as HTMLElement;
 
-  // Handle removal
+  // Handle removal/unmounting
   if (newVNode === null || newVNode === undefined) {
     if (oldVNode) {
       if (typeof oldVNode.type === 'function') {
@@ -24,10 +29,11 @@ export function diff(
         );
         if (instance) {
           cleanupEffects(instance);
+          componentInstanceCache.delete(oldVNode as VNode<FunctionalComponent>);
         }
       }
+      if (existingElement) parent.removeChild(existingElement);
     }
-    if (existingElement) parent.removeChild(existingElement);
     return;
   }
 
@@ -60,55 +66,46 @@ function diffFunctionalComponent(
   parent: HTMLElement,
   index: number,
 ): void {
+  try {
   const instance =
     componentInstanceCache.get(oldVNode!) ||
     createFunctionalComponentInstance(newVNode);
 
-  instance.vnode = newVNode;
-  componentInstanceCache.set(newVNode, instance);
+    instance.vnode = newVNode;
+    componentInstanceCache.set(newVNode, instance);
 
-  setCurrentComponent(instance);
-  const renderedNode = instance.render();
+    setCurrentComponent(instance);
+    const renderedNode = instance.render();
 
-  if (
-    typeof renderedNode === 'object' &&
-    typeof renderedNode?.type === 'function'
-  ) {
-    const childInstance = createFunctionalComponentInstance(
-      renderedNode as VNode<FunctionalComponent>,
-    );
-    const childDom = renderVNode(childInstance.render());
-
-    if (childDom) {
-      if (instance.dom) {
-        parent.replaceChild(childDom, instance.dom);
-      } else {
+    if (instance.dom) {
+      diff(renderedNode as VNode, instance.vnode, parent, index);
+    } else {
+      const newDom = renderVNode(renderedNode);
+      if (newDom) {
         const existingElement = parent.childNodes[index];
         if (existingElement) {
-          parent.replaceChild(childDom, existingElement);
+          parent.replaceChild(newDom, existingElement);
         } else {
-          parent.appendChild(childDom);
+          parent.appendChild(newDom);
         }
+        instance.dom = newDom;
       }
-      instance.dom = childDom;
-      childInstance.dom = childDom;
     }
-    return;
-  }
-
-  if (instance.dom) {
-    diff(renderedNode as VNode, instance.vnode, parent, index);
-  } else {
-    const newDom = renderVNode(renderedNode);
-    if (newDom) {
+  } catch (error) {
+    // Handle error by rendering error boundary content
+    const errorContent = createElement('div', null, 'Error caught');
+    const errorDom = renderVNode(errorContent);
+    if (errorDom) {
       const existingElement = parent.childNodes[index];
       if (existingElement) {
-        parent.replaceChild(newDom, existingElement);
+        parent.replaceChild(errorDom, existingElement);
       } else {
-        parent.appendChild(newDom);
+        parent.appendChild(errorDom);
       }
-      instance.dom = newDom;
     }
+    throw error; // Re-throw for test environment
+  } finally {
+    resetCurrentComponent();
   }
 }
 
@@ -150,11 +147,21 @@ function diffChildren(
 
   // Remove extra children
   while (parent.childNodes.length > newChildren.length) {
-    parent.removeChild(parent.lastChild!);
+    const lastChild = parent.lastChild;
+    if (lastChild) {
+      parent.removeChild(lastChild);
+    }
   }
 
   // Update remaining children
   newChildren.forEach((child, i) => {
+    if (child === null || child === undefined) {
+      // Remove the old child if it exists
+      if (parent.childNodes[i]) {
+        parent.removeChild(parent.childNodes[i]);
+      }
+      return;
+    }
     diff(child as VNode, oldChildren[i] as VNode | null, parent, i);
   });
 }
@@ -182,9 +189,11 @@ function diffTextNode(
 
 function normalizeChildren(
   children: VNodeChildren,
-): Array<VNode | string | number> {
+): Array<VNode | string | number | null> {
   if (!children) return [];
   return Array.isArray(children)
-    ? children.filter((child) => child != null && typeof child !== 'boolean')
+    ? children.map((child) =>
+        child === false || child === true || child === undefined ? null : child,
+      )
     : [children];
 }

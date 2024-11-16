@@ -1,4 +1,4 @@
-import { FunctionalComponent } from './component';
+import { FunctionalComponent, FunctionalComponentInstance } from './component';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type VNodeType = string | FunctionalComponent<any>;
@@ -25,4 +25,10 @@ export interface VNode<T extends VNodeType = VNodeType> {
   props: VNodeProps<T>;
   children: VNodeChildren<T>;
   key?: string | number;
+}
+
+declare global {
+  interface HTMLElement {
+    _instance?: FunctionalComponentInstance | null;
+  }
 }

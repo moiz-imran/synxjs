@@ -37,7 +37,10 @@ export function createFunctionalComponentInstance(
       this.currentHook = 0;
       setCurrentComponent(this);
       try {
-        return (this.vnode.type as FunctionalComponent)(this.vnode.props);
+        return (this.vnode.type as FunctionalComponent)({
+          ...this.vnode.props,
+          children: this.vnode.children,
+        });
       } finally {
         resetCurrentComponent();
       }

@@ -1,7 +1,7 @@
 import { createFunctionalComponentInstance } from '@synxjs/instance';
 import { describe, beforeEach, afterEach, it, expect } from 'vitest';
-import { createElement, renderVNode } from '../dist';
-import { FunctionalComponent, VNode, VNodeType } from '@synxjs/types';
+import { createElement, renderVNode } from '../src';
+import { FunctionalComponent, VNode } from '@synxjs/types';
 
 describe('VNode Renderer', () => {
   let container: HTMLElement;

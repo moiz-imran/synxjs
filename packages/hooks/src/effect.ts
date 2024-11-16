@@ -31,10 +31,9 @@ export function useEffect(effect: Effect, deps?: unknown[]): void {
 
     hooks[hookIndex] = hook;
 
-    if (!prevHook) {
-      hook.cleanup = effect();
-    } else {
-      queueEffect(effect);
-    }
+    queueEffect(() => {
+      const result = effect();
+      hook.cleanup = result;
+    });
   }
 }

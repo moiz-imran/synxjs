@@ -15,6 +15,9 @@ export class PulseStore<T extends object> implements Store<T> {
   }
 
   setPulse<K extends keyof T>(key: K, value: T[K]): void {
+    if (typeof value === 'object' && value !== null) {
+      value = reactive(value as object) as T[K];
+    }
     this.pulses[key] = value;
   }
 
@@ -33,7 +36,7 @@ export class PulseStore<T extends object> implements Store<T> {
   subscribe(key: keyof T, callback: Effect): CleanupFn {
     return effect(() => {
       this.getPulse(key);
-      callback();
+      queueMicrotask(callback);
     });
   }
 }

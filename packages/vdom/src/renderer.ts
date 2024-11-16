@@ -5,18 +5,39 @@ import {
   createFunctionalComponentInstance,
 } from '@synxjs/instance';
 import { updateAttributes } from './attributes';
-import { setCurrentComponent, resetCurrentComponent, getCurrentComponent } from '@synxjs/runtime';
+import {
+  setCurrentComponent,
+  resetCurrentComponent,
+  runEffects,
+  cleanupEffects,
+} from '@synxjs/runtime';
+import { createElement } from './create-element';
 
 export function renderApp(container: HTMLElement, appVNode: VNode): void {
+  // Clean up previous render
+  const currentInstance = container._instance;
+  if (currentInstance) {
+    cleanupEffects(currentInstance);
+  }
+
   const rootInstance = createFunctionalComponentInstance(
     appVNode as VNode<FunctionalComponent>,
   );
-  const newDom = render(rootInstance.render());
+
+  const renderedChildren = rootInstance.render();
+  const newDom = render(renderedChildren);
 
   if (newDom) {
-    container.innerHTML = '';
+    // Store new instance before DOM changes
+    container._instance = rootInstance;
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
     container.appendChild(newDom);
     rootInstance.dom = newDom;
+
+    runEffects();
   }
 }
 
@@ -53,6 +74,15 @@ function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
     }
 
     return childDom;
+  } catch (error) {
+    const errorContent = createElement(
+      'div',
+      null,
+      'Error caught',
+      createElement('span', null, String(error)),
+    );
+    const errorDom = render(errorContent);
+    return errorDom;
   } finally {
     resetCurrentComponent();
   }

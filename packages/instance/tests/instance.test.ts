@@ -5,7 +5,7 @@ import {
   domToInstanceMap,
 } from '../src';
 import type { VNode, FunctionalComponent } from '@synxjs/types';
-import { createElement } from '@synxjs/vdom';
+import { createElement } from '../../vdom/src';
 
 // Mock needs to be before any imports
 vi.mock('@synxjs/runtime', () => ({

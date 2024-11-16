@@ -25,6 +25,16 @@ export function getCurrentComponent(): FunctionalComponentInstance {
   return hookStack[hookStack.length - 1];
 }
 
+export function updateComponentInStack(
+  oldComponent: FunctionalComponentInstance,
+  newComponent: FunctionalComponentInstance,
+): void {
+  const index = hookStack.findIndex((comp) => comp === oldComponent);
+  if (index !== -1) {
+    hookStack[index] = newComponent;
+  }
+}
+
 export function resetHookStack(): void {
   hookStack = [];
 }

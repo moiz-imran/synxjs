@@ -10,16 +10,17 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "eslint \"src/**/*.ts*\"",
+    "test": "vitest --silent=false --watch --coverage",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
     "@synxjs/hooks": "workspace:*",
     "@synxjs/store": "workspace:*",
-    "@synxjs/vdom": "workspace:*"
-  },
-  "devDependencies": {
-    "typescript": "^5.6.3",
-    "tsup": "^8.0.0",
-    "eslint": "^8.56.0"
+    "@synxjs/vdom": "workspace:*",
+    "@synxjs/runtime": "workspace:*",
+    "@synxjs/reactivity": "workspace:*",
+    "@synxjs/instance": "workspace:*",
+    "@synxjs/jsx-runtime": "workspace:*",
+    "@synxjs/types": "workspace:*"
   }
 }

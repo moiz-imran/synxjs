@@ -6,7 +6,7 @@ export type Setter<T> = (newValue: T | ((prev: T) => T)) => void;
 
 export interface BaseHook {
   type: HookType;
-  id?: symbol; // For debugging
+  id?: symbol;
 }
 
 export type HookType =

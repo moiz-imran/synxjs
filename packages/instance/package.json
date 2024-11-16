@@ -17,8 +17,5 @@
   "dependencies": {
     "@synxjs/types": "workspace:*",
     "@synxjs/runtime": "workspace:*"
-  },
-  "devDependencies": {
-    "@synxjs/vdom": "workspace:*"
   }
 }
