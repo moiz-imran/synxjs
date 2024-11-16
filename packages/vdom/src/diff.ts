@@ -9,6 +9,7 @@ import {
   cleanupEffects,
   resetCurrentComponent,
   setCurrentComponent,
+  updateComponentInStack,
 } from '@synxjs/runtime';
 import { createElement } from './create-element';
 
@@ -67,13 +68,20 @@ function diffFunctionalComponent(
   index: number,
 ): void {
   try {
-  const instance =
-    componentInstanceCache.get(oldVNode!) ||
-    createFunctionalComponentInstance(newVNode);
+    let instance = componentInstanceCache.get(oldVNode!);
 
-    instance.vnode = newVNode;
+    if (!instance) {
+      instance = createFunctionalComponentInstance(newVNode);
+    } else {
+      // Update instance with new vnode
+      instance = {
+        ...instance,
+        vnode: newVNode,
+      };
+      updateComponentInStack(componentInstanceCache.get(oldVNode!)!, instance);
+    }
+
     componentInstanceCache.set(newVNode, instance);
-
     setCurrentComponent(instance);
     const renderedNode = instance.render();
 
