@@ -73,6 +73,15 @@ function diffFunctionalComponent(
     if (!instance) {
       instance = createFunctionalComponentInstance(newVNode);
     } else {
+      // Clean up old event listeners before updating instance
+      if (instance.dom && instance.lastRendered) {
+        updateAttributes(
+          instance.dom as HTMLElement,
+          {}, // New props empty to remove all listeners
+          instance.lastRendered.props || {},
+        );
+      }
+
       // Update instance with new vnode
       instance = {
         ...instance,
@@ -86,7 +95,7 @@ function diffFunctionalComponent(
     const renderedNode = instance.render();
 
     if (instance.dom) {
-      diff(renderedNode as VNode, instance.vnode, parent, index);
+      diff(renderedNode as VNode, instance.lastRendered || null, parent, index);
     } else {
       const newDom = renderVNode(renderedNode);
       if (newDom) {
@@ -99,6 +108,9 @@ function diffFunctionalComponent(
         instance.dom = newDom;
       }
     }
+
+    // Store last rendered node for next update
+    instance.lastRendered = renderedNode as VNode;
   } catch (error) {
     // Handle error by rendering error boundary content
     const errorContent = createElement('div', null, 'Error caught');

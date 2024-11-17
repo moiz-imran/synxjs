@@ -10,6 +10,7 @@ export interface FunctionalComponentInstance {
   vnode: VNode<FunctionalComponent>;
   render: () => RenderResult;
   dom: DOMNode | null;
+  lastRendered?: VNode | null;
 }
 
 export interface FunctionalComponent<P = object> {

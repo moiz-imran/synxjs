@@ -5,11 +5,15 @@ export function updateAttributes(
   newProps: VNodeProps,
   oldProps: VNodeProps,
 ): void {
-  // Remove old properties
-  for (const name in oldProps) {
-    if (name !== 'children' && !(name in newProps)) {
-      element.removeAttribute(name);
-    }
+  // Initialize listeners map if needed
+  if (!element._listeners) {
+    element._listeners = {};
+  }
+
+  // Remove old event listeners
+  for (const eventName in element._listeners) {
+    element.removeEventListener(eventName, element._listeners[eventName]);
+    delete element._listeners[eventName];
   }
 
   // Set new properties
@@ -21,10 +25,9 @@ export function updateAttributes(
       element.removeAttribute(name);
     } else if (name.startsWith('on')) {
       const eventName = name.slice(2).toLowerCase();
-      if (oldProps[name]) {
-        element.removeEventListener(eventName, oldProps[name] as EventListener);
-      }
-      element.addEventListener(eventName, value as EventListener);
+      // Store and add new listener
+      element._listeners[eventName] = value as EventListener;
+      element.addEventListener(eventName, element._listeners[eventName]);
     } else if (name === 'className') {
       element.setAttribute('class', String(value));
     } else if (name === 'style' && typeof value === 'object') {

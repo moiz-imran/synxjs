@@ -327,4 +327,71 @@ describe('Core Integration', () => {
       );
     });
   });
+
+  describe('Event Listener Cleanup', () => {
+    it('should clean up event listeners properly with nested functional components', async () => {
+      const eventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'addEventListener',
+      );
+      const removeEventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'removeEventListener',
+      );
+      const store = new PulseStore({ value: 'initial' });
+
+      const Button = ({ onClick }: { onClick: () => void }) => {
+        return createElement('button', { onClick }, 'Click me');
+      };
+
+      const Parent = () => {
+        const [value, setValue] = usePulseState('value', store);
+
+        return createElement(Button, {
+          onClick: () => {
+            setValue((v) => (v === 'initial' ? 'updated' : 'initial'));
+          },
+        });
+      };
+
+      // Initial render
+      renderApp(container, createElement(Parent, null));
+      await vi.runAllTimersAsync();
+
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(eventListenerSpy).toHaveBeenCalledWith(
+        'click',
+        expect.any(Function),
+      );
+
+      // Reset counts
+      eventListenerSpy.mockClear();
+      removeEventListenerSpy.mockClear();
+
+      // First update
+      const button = container.querySelector('button');
+      button?.click();
+      await vi.runAllTimersAsync();
+
+      // Should remove old listener and add new one
+      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Reset counts
+      eventListenerSpy.mockClear();
+      removeEventListenerSpy.mockClear();
+
+      // Second update
+      button?.click();
+      await vi.runAllTimersAsync();
+
+      // Should remove old listener and add new one
+      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Cleanup
+      eventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    });
+  });
 });

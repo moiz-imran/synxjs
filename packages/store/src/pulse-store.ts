@@ -18,7 +18,9 @@ export class PulseStore<T extends object> implements Store<T> {
     if (typeof value === 'object' && value !== null) {
       value = reactive(value as object) as T[K];
     }
-    this.pulses[key] = value;
+    if (!Object.is(this.pulses[key], value)) {
+      this.pulses[key] = value;
+    }
   }
 
   getPulses(): T {

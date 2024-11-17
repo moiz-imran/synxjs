@@ -27,8 +27,13 @@ export interface VNode<T extends VNodeType = VNodeType> {
   key?: string | number;
 }
 
+interface EventListenerMap {
+  [eventName: string]: EventListener;
+}
+
 declare global {
   interface HTMLElement {
     _instance?: FunctionalComponentInstance | null;
+    _listeners?: EventListenerMap;
   }
 }

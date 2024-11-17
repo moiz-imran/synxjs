@@ -18,7 +18,10 @@ export const App: FunctionalComponent = () => {
         <Alert message="This is a success alert!" type="success" dismissible />
       </main>
 
-      <footer role="contentinfo" className="py-2 text-center absolute bottom-0 w-full bg-black -mx-8 text-white">
+      <footer
+        role="contentinfo"
+        className="py-2 text-center absolute bottom-0 w-full bg-black -mx-8 text-white"
+      >
         © 2024 SynxJS. All rights reserved.
       </footer>
     </div>
