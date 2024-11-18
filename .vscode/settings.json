@@ -9,6 +9,13 @@
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
   "conventionalCommits.scopes": [
-    "core"
+    "core",
+    "vdom",
+    "runtime",
+    "hooks",
+    "types",
+    "instance",
+    "reactivity",
+    "store"
   ]
 }

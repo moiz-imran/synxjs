@@ -151,3 +151,8 @@ export function effect(eff: Effect): () => void {
     cleanupEffect(eff);
   };
 }
+
+export const _testing = {
+  effectDependencies,
+  targetMap
+};

@@ -91,14 +91,14 @@ describe('Reactivity', () => {
     });
   });
 
-  describe("edge cases", () => {
-    it("should handle multiple levels of nesting", () => {
+  describe('edge cases', () => {
+    it('should handle multiple levels of nesting', () => {
       const obj = reactive({
         deep: {
           nested: {
-            count: 0
-          }
-        }
+            count: 0,
+          },
+        },
       });
       let dummy: number | undefined;
 
@@ -111,7 +111,7 @@ describe('Reactivity', () => {
       expect(dummy).toBe(1);
     });
 
-    it("should handle arrays", () => {
+    it('should handle arrays', () => {
       const arr = reactive<number[]>([0, 1, 2]);
       let dummy: number | undefined;
 
@@ -138,10 +138,10 @@ describe('Reactivity', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     });
 
-    it("should handle effect cleanup with multiple dependencies", () => {
+    it('should handle effect cleanup with multiple dependencies', () => {
       const obj = reactive({
         count1: 0,
-        count2: 0
+        count2: 0,
       });
       const fn = vi.fn(() => {
         const value = obj.count1 + obj.count2;
@@ -160,7 +160,7 @@ describe('Reactivity', () => {
       expect(fn).toHaveBeenCalledTimes(2);
     });
 
-    it("should handle replacing nested objects", () => {
+    it('should handle replacing nested objects', () => {
       const obj = reactive<{ nested: { count: number } }>({
         nested: { count: 0 },
       });
@@ -173,6 +173,206 @@ describe('Reactivity', () => {
       expect(dummy).toBe(0);
       obj.nested = { count: 1 };
       expect(dummy).toBe(1);
+    });
+
+    // it('should handle cleanup with missing dependencies', () => {
+    //   const obj = reactive({ count: 0 });
+    //   const fn = vi.fn(() => {
+    //     obj.count;
+    //   });
+
+    //   // Create an effect and track dependency
+    //   const cleanup = effect(fn);
+    //   expect(fn).toHaveBeenCalledTimes(1);
+
+    //   // Manually corrupt the targetMap to test edge cases
+    //   const deps = _testing.effectDependencies.get(fn);
+    //   if (deps) {
+    //     // Add a non-existent target to dependencies
+    //     deps.add([{}, 'nonexistent']);
+    //   }
+
+    //   // Run cleanup - should handle missing deps gracefully
+    //   cleanup();
+    //   expect(fn).toHaveBeenCalledTimes(1);
+
+    //   // Verify original cleanup still worked
+    //   obj.count++;
+    //   expect(fn).toHaveBeenCalledTimes(1);
+    // });
+
+    // it('should handle cleanup with missing dep set', () => {
+    //   const obj = reactive({ count: 0 });
+    //   const fn = vi.fn(() => {
+    //     obj.count;
+    //   });
+
+    //   // Create an effect and track dependency
+    //   const cleanup = effect(fn);
+
+    //   const effectDeps = _testing.effectDependencies.get(fn);
+    //   effectDeps?.forEach(([target, key]) => {
+    //     const depsMap = _testing.targetMap.get(target);
+    //     if (depsMap) {
+    //       // Explicitly set undefined as the dep Set
+    //       depsMap.set(key, undefined as any);
+    //     }
+    //   });
+
+    //   // Run cleanup - should handle missing dep set gracefully
+    //   cleanup();
+
+    //   // Verify cleanup worked
+    //   obj.count++;
+    //   expect(fn).toHaveBeenCalledTimes(1);
+    // });
+  });
+
+  describe('effect cleanup', () => {
+    it('should properly cleanup single dependency', () => {
+      const obj = reactive({ count: 0 });
+      const fn = vi.fn(() => {
+        obj.count;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      cleanup();
+      obj.count++;
+      expect(fn).toHaveBeenCalledTimes(1); // Effect not called after cleanup
+    });
+
+    it('should properly cleanup with multiple dependencies', () => {
+      const obj = reactive({ a: 0, b: 0 });
+      const fn = vi.fn(() => {
+        obj.a + obj.b;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      obj.a++; // Effect should trigger
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      cleanup();
+      obj.a++; // Effect should not trigger after cleanup
+      obj.b++;
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should properly cleanup nested dependencies', () => {
+      const obj = reactive({ nested: { count: 0 } });
+      const fn = vi.fn(() => {
+        obj.nested.count;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      obj.nested.count++; // Effect should trigger
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      cleanup();
+      obj.nested.count++; // Effect should not trigger after cleanup
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle cleanup when replacing nested objects', () => {
+      const obj = reactive({ nested: { count: 0 } });
+      const fn = vi.fn(() => {
+        obj.nested.count;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      obj.nested = { count: 1 }; // Effect should trigger
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      cleanup();
+      obj.nested = { count: 2 }; // Effect should not trigger after cleanup
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle cleanup with array dependencies', () => {
+      const arr = reactive([1, 2, 3]);
+      const fn = vi.fn(() => {
+        arr[0];
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      arr[0] = 4; // Effect should trigger
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      cleanup();
+      arr[0] = 5; // Effect should not trigger after cleanup
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle multiple cleanups of the same effect', () => {
+      const obj = reactive({ count: 0 });
+      const fn = vi.fn(() => {
+        obj.count;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      cleanup();
+      cleanup(); // Second cleanup should be safe
+      obj.count++;
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('effect cleanup edge cases', () => {
+    it('should handle cleanup after target object is replaced', () => {
+      const wrapper = reactive({ obj: { count: 0 } });
+      const fn = vi.fn(() => {
+        wrapper.obj.count;
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      // Replace the entire object, which should cause the old target's deps
+      // to be "orphaned" but cleanup should still work
+      wrapper.obj = { count: 1 };
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      cleanup();
+      // At this point, cleanup runs on both the old and new object references
+
+      wrapper.obj.count++;
+      expect(fn).toHaveBeenCalledTimes(2); // Should not trigger
+    });
+
+    it('should handle cleanup with deleted properties', () => {
+      const obj = reactive({ count: 0 });
+      const fn = vi.fn(() => {
+        // Using try-catch to handle property access after deletion
+        try {
+          obj.count;
+        } catch {
+          return undefined;
+        }
+      });
+
+      const cleanup = effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      // Delete the property, which should cause the dep to be undefined
+      delete (obj as any).count;
+
+      cleanup();
+      // Cleanup should handle the missing property gracefully
+
+      // Add the property back
+      (obj as any).count = 1;
+      expect(fn).toHaveBeenCalledTimes(1); // Should not trigger
     });
   });
 });

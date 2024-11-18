@@ -14,9 +14,6 @@ const effects: QueuedEffect[] = [];
 
 export function queueEffect(effect: Effect): void {
   const instance = getCurrentComponent();
-  if (!instance) {
-    throw new Error('Cannot queue effect outside of component');
-  }
   effects.push({ effect, instance });
 }
 
