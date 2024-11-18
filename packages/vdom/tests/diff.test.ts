@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, diff, render } from '../src';
-import type { FunctionalComponent } from '@synxjs/types';
+import type { FunctionalComponent, VNode } from '@synxjs/types';
+import { createFunctionalComponentInstance } from '@synxjs/instance';
 
 describe('Diff', () => {
   let container: HTMLElement;
@@ -251,6 +252,90 @@ describe('Diff', () => {
         await vi.runAllTimersAsync();
 
         expect(container.innerHTML).toBe('<div><span>new</span></div>');
+      }
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle component with no dom', () => {
+      const Component = () => createElement('div', null);
+      const vnode = createElement(Component as FunctionalComponent, null);
+      const dom = render(vnode);
+      if (dom) {
+        // dom.remove();
+        diff(vnode, null, container, 0);
+        // Should not throw
+      }
+    });
+
+    it('should handle error in component render', () => {
+      const ErrorComponent = () => {
+        throw new Error('Test error');
+      };
+      const vnode = createElement(ErrorComponent as FunctionalComponent, null);
+      diff(vnode, null, container, 0);
+      expect(container.textContent).toContain('Error caught');
+    });
+
+    it('should handle text node updates', () => {
+      container.appendChild(document.createTextNode('old'));
+      diff(
+        createElement('span', null, 'new'),
+        createElement('span', null, 'old'),
+        container,
+        0,
+      );
+      expect(container.textContent).toBe('new');
+    });
+  });
+
+  describe('Advanced Diff Cases', () => {
+    it('should handle null parent with existing element', () => {
+      const element = document.createElement('div');
+      const vnode = createElement('div', null);
+      diff(vnode, null, element as any, 0);
+      // Should not throw
+    });
+
+    it('should handle component update with no dom', () => {
+      const Component = () => createElement('div', null);
+      const oldVNode = createElement(Component as FunctionalComponent, null);
+      const newVNode = createElement(Component as FunctionalComponent, null);
+      const instance = createFunctionalComponentInstance(
+        oldVNode as VNode<FunctionalComponent>,
+      );
+      instance.dom = null;
+      diff(newVNode, oldVNode, container, 0);
+      // Should not throw
+    });
+
+    it('should handle text node updates with no existing element', () => {
+      const textNode = document.createTextNode('old');
+      container.appendChild(textNode);
+      diff(
+        createElement('span', null, 'new'),
+        createElement('span', null, 'old'),
+        container,
+        1,
+      ); // Use index where no element exists
+      expect(container.textContent).toBe('oldnew');
+    });
+
+    it('should handle component with changed props', () => {
+      const Component = ({ value }: { value: string }) =>
+        createElement('div', null, value);
+
+      const oldVNode = createElement(Component as FunctionalComponent, {
+        value: 'old',
+      });
+      const dom = render(oldVNode);
+      if (dom) {
+        container.appendChild(dom);
+        const newVNode = createElement(Component as FunctionalComponent, {
+          value: 'new',
+        });
+        diff(newVNode, oldVNode, container, 0);
+        expect(container.textContent).toBe('new');
       }
     });
   });

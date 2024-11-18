@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { updateAttributes } from '../src/attributes';
 
 describe('Attributes', () => {
@@ -14,5 +14,11 @@ describe('Attributes', () => {
 
     // Verify it was removed (no error thrown)
     element.click();
+  });
+
+  it('should handle undefined style object', () => {
+    const element = document.createElement('div');
+    updateAttributes(element, { style: undefined }, {});
+    expect(element.style.cssText).toBe('');
   });
 });

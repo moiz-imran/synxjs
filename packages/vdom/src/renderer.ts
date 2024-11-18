@@ -24,27 +24,27 @@ export function renderApp(container: HTMLElement, appVNode: VNode): void {
     appVNode as VNode<FunctionalComponent>,
   );
 
-  const renderedChildren = rootInstance.render();
-  const newDom = render(renderedChildren);
+  try {
+    const renderedChildren = rootInstance.render();
+    const newDom = render(renderedChildren);
 
-  if (newDom) {
-    // Store new instance before DOM changes
-    container._instance = rootInstance;
+    if (newDom) {
+      // Store new instance before DOM changes
+      container._instance = rootInstance;
 
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
-    container.appendChild(newDom);
-    rootInstance.dom = newDom;
-
-    // Run effects after rendering
-    try {
-      runEffects();
-    } catch (error) {
-      const errorDom = renderError(error);
-      if (errorDom) {
-        container.appendChild(errorDom);
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
       }
+      container.appendChild(newDom);
+      rootInstance.dom = newDom;
+
+      // Run effects after rendering
+      runEffects();
+    }
+  } catch (error) {
+    const errorDom = renderError(error);
+    if (errorDom) {
+      container.appendChild(errorDom);
     }
   }
 }
@@ -118,7 +118,7 @@ function renderChildren(element: HTMLElement, children: VNodeChild[]): void {
   }
 }
 
-function renderError(error: unknown): HTMLElement {
+export function renderError(error: unknown): HTMLElement {
   const errorContent = createElement(
     'div',
     null,

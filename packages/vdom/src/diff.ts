@@ -15,6 +15,7 @@ import {
   setCurrentComponent,
   updateComponentInStack,
 } from '@synxjs/runtime';
+import { renderError } from './renderer';
 
 export function diff(
   newVNode: VNode | null,
@@ -135,6 +136,9 @@ function diffFunctionalComponent(
         instance.dom = newDom;
       }
     }
+  } catch (error) {
+    const errorDom = renderError(error);
+    if (errorDom) parent.appendChild(errorDom);
   } finally {
     resetCurrentComponent();
   }

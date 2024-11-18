@@ -126,3 +126,42 @@ describe('Scheduler', () => {
     await vi.runAllTimersAsync();
   });
 });
+
+describe('Scheduler Edge Cases', () => {
+  it('should handle concurrent updates', async () => {
+    const instance = {
+      hooks: [],
+      currentHook: 0,
+      vnode: {} as any,
+      render: vi.fn(),
+      dom: document.createElement('div'),
+    };
+
+    document.body.appendChild(instance.dom);
+
+    // Schedule multiple updates
+    scheduleUpdate(instance);
+    scheduleUpdate(instance); // Should be batched
+
+    await vi.runAllTimersAsync();
+    await Promise.resolve();
+    expect(instance.render).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle component unmounting during update', async () => {
+    const instance = {
+      hooks: [],
+      currentHook: 0,
+      vnode: {} as any,
+      render: vi.fn(),
+      dom: document.createElement('div'),
+    };
+
+    scheduleUpdate(instance);
+    // Remove parent before update processes
+    instance.dom.remove();
+
+    await vi.runAllTimersAsync();
+    // Should not throw and should cleanup
+  });
+});

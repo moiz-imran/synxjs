@@ -38,3 +38,26 @@ describe('VNode Renderer', () => {
     expect(dom?.childNodes.length).toBe(0);
   });
 });
+
+describe('VNode Renderer Edge Cases', () => {
+  it('should handle component with no dom', () => {
+    const Component = () => null;
+    const vnode = createElement(
+      Component as unknown as FunctionalComponent,
+      null,
+    );
+    const dom = renderVNode(vnode);
+    console.log(dom);
+    expect(dom).toBeNull();
+  });
+
+  it('should handle element with no children', () => {
+    const vnode = {
+      type: 'div',
+      props: {},
+      children: [],
+    } as VNode;
+    const dom = renderVNode(vnode);
+    expect(dom instanceof HTMLDivElement).toBe(true);
+  });
+});
