@@ -18,20 +18,20 @@ describe('VDOM Core', () => {
       const props = { className: 'test', id: 'test-id' };
       const vnode = createElement('div', props, 'Hello');
 
-      expect(vnode).toEqual({
+      expect(vnode).toMatchObject({
         type: 'div',
         props: props,
-        children: ['Hello'],
+        children: ['Hello']
       });
     });
 
     it('should handle Fragment', () => {
       const vnode = createElement(Fragment, null, 'Item 1', 'Item 2');
 
-      expect(vnode).toEqual({
+      expect(vnode).toMatchObject({
         type: typeof Fragment,
         props: {},
-        children: ['Item 1', 'Item 2'],
+        children: ['Item 1', 'Item 2']
       });
     });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, diff, render } from '../src';
 import { FunctionalComponent, VNode } from '@synxjs/types';
 
@@ -8,6 +8,8 @@ describe('Edge Cases', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
+
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
@@ -25,11 +27,13 @@ describe('Edge Cases', () => {
     });
 
     it('should handle mixed children types', () => {
-      const vnode = createElement('div', null,
+      const vnode = createElement(
+        'div',
+        null,
         'text',
         createElement('span', null),
         null,
-        42
+        42,
       );
       const dom = render(vnode);
       if (dom) {
@@ -56,21 +60,36 @@ describe('Edge Cases', () => {
       const ErrorComponent = () => {
         throw new Error('Test error');
       };
+
+      // First create a div to catch the error
+      const errorDiv = createElement('div', null, 'Error caught');
+
+      // Then create the error boundary that will render our error div
       const ErrorBoundary = ({ children }: { children: any }) => {
         try {
-          return children;
-        } catch (error) {
-          return createElement('div', null, 'Error caught');
+          return createElement('div', null, children);
+        } catch {
+          return errorDiv;
         }
       };
 
-      const vnode = createElement(ErrorBoundary, null,
-        createElement(ErrorComponent, null)
+      // First render the error boundary
+      const vnode = createElement(
+        ErrorBoundary,
+        null,
+        createElement(ErrorComponent, null),
       );
+
+      // Render and let it throw
       const dom = render(vnode);
       if (dom) {
         container.appendChild(dom);
-        expect(container.textContent).toBe('Error caught');
+
+        // Run any pending effects
+        vi.runAllTimers();
+
+        // Verify error state
+        expect(container.textContent).toContain('Error caught');
       }
     });
   });

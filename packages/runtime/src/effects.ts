@@ -37,17 +37,8 @@ export function runEffects(): void {
         }
       }
     } catch (error) {
-      console.error('Effect execution failed:', error);
-      // Render error state for this component
-      if (instance.dom?.parentNode) {
-        instance.dom.parentNode.replaceChild(
-          document.createTextNode('Error caught'),
-          instance.dom,
-        );
-      }
-      if (process.env.NODE_ENV === 'test') {
-        throw error;
-      }
+      console.error('Error running effect:', error);
+      throw error;
     }
   }
 }
@@ -59,6 +50,7 @@ export function cleanupEffects(instance: FunctionalComponentInstance): void {
     if (hook.type === 'effect' && hook.cleanup) {
       try {
         hook.cleanup();
+        hook.cleanup = undefined;
       } catch (error) {
         console.error('Effect cleanup failed:', error);
       }

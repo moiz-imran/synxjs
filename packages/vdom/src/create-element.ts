@@ -19,6 +19,7 @@ export function createElement<P extends VNodeProps>(
     type: type === Fragment ? typeof Fragment : type,
     props: finalProps,
     children: children.flat(),
+    renderedChildren: []
   };
 
   return vnode as VNode;

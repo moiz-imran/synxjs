@@ -15,10 +15,7 @@ const applyTheme = (theme: string): void => {
 export const ThemeSwitcher: FunctionalComponent = () => {
   const [theme, setTheme] = usePulseState('theme', appStore);
 
-  usePulseEffect(() => {
-    console.log('theme', theme);
-    applyTheme(theme);
-  });
+  usePulseEffect(() => applyTheme(theme));
 
   return (
     <Button

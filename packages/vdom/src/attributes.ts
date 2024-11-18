@@ -10,13 +10,13 @@ export function updateAttributes(
     element._listeners = {};
   }
 
-  // Remove old event listeners
+  // First, remove all existing listeners
   for (const eventName in element._listeners) {
     element.removeEventListener(eventName, element._listeners[eventName]);
     delete element._listeners[eventName];
   }
 
-  // Set new properties
+  // Then add new listeners
   for (const name in newProps) {
     if (name === 'children' || name === 'key' || name === 'ref') continue;
 

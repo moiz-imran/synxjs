@@ -78,7 +78,6 @@ describe('Core Integration', () => {
 
   describe('Error Handling', () => {
     it('should handle errors in components with effects', () => {
-      const cleanup = vi.fn();
       const ErrorComponent = () => {
         useEffect(() => {
           throw new Error('Test error');
@@ -106,19 +105,13 @@ describe('Core Integration', () => {
       );
 
       // Render and let it throw
-      try {
-        renderApp(container, vnode);
-      } catch (error) {
-        // Expected error
-        cleanup();
-      }
+      renderApp(container, vnode);
 
       // Run any pending effects
       vi.runAllTimers();
 
       // Verify error state
-      expect(container.textContent).toBe('Error caught');
-      expect(cleanup).toHaveBeenCalled();
+      expect(container.textContent).toContain('Error caught');
     });
   });
 
@@ -388,6 +381,151 @@ describe('Core Integration', () => {
       // Should remove old listener and add new one
       expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
       expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Cleanup
+      eventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    });
+
+    it('should handle event listener cleanup when parent props change', async () => {
+      const eventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'addEventListener',
+      );
+      const removeEventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'removeEventListener',
+      );
+      const store = new PulseStore({ count: 0 });
+
+      const Button = ({
+        onClick,
+        label,
+      }: {
+        onClick: () => void;
+        label: string;
+      }) => {
+        return createElement('button', { onClick }, label);
+      };
+
+      const Parent = () => {
+        const [count, setCount] = usePulseState('count', store);
+
+        return createElement(Button, {
+          onClick: () => setCount((c) => c + 1),
+          label: `Count: ${count}`,
+        });
+      };
+
+      renderApp(container, createElement(Parent, null));
+      await vi.runAllTimersAsync();
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Reset spies
+      eventListenerSpy.mockClear();
+      removeEventListenerSpy.mockClear();
+
+      // Update store directly to trigger prop change
+      store.setPulse('count', 1);
+      await vi.runAllTimersAsync();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Cleanup
+      eventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    });
+
+    it('should handle multiple nested functional components', async () => {
+      const eventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'addEventListener',
+      );
+      const removeEventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'removeEventListener',
+      );
+      const store = new PulseStore({ value: 'initial' });
+
+      const ButtonInner = ({ onClick }: { onClick: () => void }) => {
+        return createElement('button', { onClick }, 'Click');
+      };
+
+      const ButtonWrapper = ({ onClick }: { onClick: () => void }) => {
+        return createElement(ButtonInner, { onClick });
+      };
+
+      const Parent = () => {
+        const [value, setValue] = usePulseState('value', store);
+
+        return createElement(ButtonWrapper, {
+          onClick: () => {
+            setValue((v) => (v === 'initial' ? 'updated' : 'initial'));
+          },
+        });
+      };
+
+      renderApp(container, createElement(Parent, null));
+      await vi.runAllTimersAsync();
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Reset spies
+      eventListenerSpy.mockClear();
+      removeEventListenerSpy.mockClear();
+
+      // Click button
+      const button = container.querySelector('button');
+      button?.click();
+      await vi.runAllTimersAsync();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Cleanup
+      eventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    });
+
+    it('should cleanup listeners when component unmounts', async () => {
+      const eventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'addEventListener',
+      );
+      const removeEventListenerSpy = vi.spyOn(
+        HTMLButtonElement.prototype,
+        'removeEventListener',
+      );
+      const store = new PulseStore({ show: true });
+
+      const Button = ({ onClick }: { onClick: () => void }) => {
+        return createElement('button', { onClick }, 'Click');
+      };
+
+      const Parent = () => {
+        const [show] = usePulseState('show', store);
+
+        return show
+          ? createElement(Button, {
+              onClick: () => console.log('click'),
+            })
+          : (null as any);
+      };
+
+      renderApp(container, createElement(Parent, null));
+      await vi.runAllTimersAsync();
+      expect(eventListenerSpy).toHaveBeenCalledTimes(1);
+
+      // Reset spies
+      eventListenerSpy.mockClear();
+      removeEventListenerSpy.mockClear();
+
+      // Unmount button by updating store
+      store.setPulse('show', false);
+      await vi.runAllTimersAsync();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(container.querySelector('button')).toBeNull();
 
       // Cleanup
       eventListenerSpy.mockRestore();

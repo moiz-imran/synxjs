@@ -11,6 +11,7 @@ export interface FunctionalComponentInstance {
   render: () => RenderResult;
   dom: DOMNode | null;
   lastRendered?: VNode | null;
+  parent?: FunctionalComponentInstance;
 }
 
 export interface FunctionalComponent<P = object> {

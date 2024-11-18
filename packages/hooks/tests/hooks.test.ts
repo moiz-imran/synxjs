@@ -51,7 +51,7 @@ describe('Hooks', () => {
   });
 
   describe('useEffect', () => {
-    it('should queue effect on mount', () => {
+    it('should queue effect on mount', async () => {
       const effect = vi.fn();
 
       useEffect(effect, []);
@@ -65,15 +65,18 @@ describe('Hooks', () => {
         }),
       );
 
-      // Check if effect was queued when deps changed
-      const prevHook = mockComponent.hooks[0] as EffectHook;
-      mockComponent.currentHook = 0;
-      useEffect(effect, [1]);
-
+      // Check if effect was queued
       expect(queueEffect).toHaveBeenCalled();
+
+      // Run queued effect
+      const queuedEffect = vi.mocked(queueEffect).mock.calls[0][0];
+      queuedEffect();
+      await Promise.resolve(); // Handle microtask
+
+      expect(effect).toHaveBeenCalled();
     });
 
-    it('should handle dependencies', () => {
+    it('should handle dependencies', async () => {
       const effect = vi.fn();
       const cleanup = vi.fn();
       effect.mockReturnValue(cleanup);
@@ -83,6 +86,11 @@ describe('Hooks', () => {
       const hook = mockComponent.hooks[0] as EffectHook;
       expect(hook.effect).toBe(effect);
       expect(hook.deps).toEqual([1]);
+
+      // Run initial effect
+      const queuedEffect = vi.mocked(queueEffect).mock.calls[0][0];
+      queuedEffect();
+      await Promise.resolve(); // Handle microtask
 
       // Same deps - shouldn't re-run
       mockComponent.currentHook = 0;
@@ -96,12 +104,17 @@ describe('Hooks', () => {
       expect(queueEffect).toHaveBeenCalled();
     });
 
-    it('should handle cleanup on unmount', () => {
+    it('should handle cleanup on unmount', async () => {
       const cleanup = vi.fn();
       const effect = vi.fn(() => cleanup);
 
       useEffect(effect, []);
       const hook = mockComponent.hooks[0] as EffectHook;
+
+      // Run initial effect
+      const queuedEffect = vi.mocked(queueEffect).mock.calls[0][0];
+      queuedEffect();
+      await Promise.resolve(); // Handle microtask
 
       // Simulate unmount
       if (hook.cleanup) {
@@ -119,27 +132,41 @@ describe('Hooks', () => {
       );
     });
 
-    it('should handle undefined deps', () => {
+    it('should handle undefined deps', async () => {
       const effect = vi.fn();
       useEffect(effect); // No deps provided
+      // Run initial effect
+      const queuedEffect = vi.mocked(queueEffect).mock.calls[0][0];
+      queuedEffect();
+      await Promise.resolve(); // Handle microtask
       expect(effect).toHaveBeenCalled();
     });
 
-    it('should handle effect cleanup and re-run', () => {
+    it('should handle effect cleanup and re-run', async () => {
       const cleanup = vi.fn();
       const effect = vi.fn(() => cleanup);
 
-      // First render
+      // First effect
       useEffect(effect, [1]);
-      expect(effect).toHaveBeenCalled();
+      const hook = mockComponent.hooks[0] as EffectHook;
 
-      // Second render with different deps
+      // Run initial effect
+      const queuedEffect = vi.mocked(queueEffect).mock.calls[0][0];
+      queuedEffect();
+      await Promise.resolve(); // Handle microtask
+
+      // Set up new effect with different deps
       mockComponent.currentHook = 0;
-      useEffect(effect, [2]);
+      useEffect(effect, [2]);  // This will trigger cleanup of previous effect
 
-      // Should cleanup previous effect and queue new one
-      expect(cleanup).toHaveBeenCalled();
-      expect(queueEffect).toHaveBeenCalled();
+      // Run new effect
+      const newQueuedEffect = vi.mocked(queueEffect).mock.calls[1][0];
+      newQueuedEffect();
+      await Promise.resolve(); // Handle microtask
+
+      // Cleanup should be called once when deps changed, and effect should run twice
+      expect(cleanup).toHaveBeenCalledTimes(1); // Once when deps changed
+      expect(effect).toHaveBeenCalledTimes(2);  // Initial and after deps change
     });
   });
 

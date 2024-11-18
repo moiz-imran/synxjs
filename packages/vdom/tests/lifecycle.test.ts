@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, render, diff } from '../src';
 import { useEffect } from '../../hooks/src';
 import { FunctionalComponent } from '@synxjs/types';
+import { runEffects } from '@synxjs/runtime';
 
 describe('Component Lifecycle', () => {
   let container: HTMLElement;
@@ -27,6 +28,9 @@ describe('Component Lifecycle', () => {
     const vnode = createElement(Component as FunctionalComponent, {});
     const dom = render(vnode);
 
+    // Run any pending effects
+    runEffects();
+
     if (dom) {
       container.appendChild(dom);
 
@@ -51,6 +55,9 @@ describe('Component Lifecycle', () => {
       { value: 'initial' },
     );
     const dom = render(initialVNode);
+
+    // Run any pending effects
+    runEffects();
 
     if (dom) {
       container.appendChild(dom);

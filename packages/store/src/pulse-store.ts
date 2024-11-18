@@ -38,7 +38,7 @@ export class PulseStore<T extends object> implements Store<T> {
   subscribe(key: keyof T, callback: Effect): CleanupFn {
     return effect(() => {
       this.getPulse(key);
-      queueMicrotask(callback);
+      callback();
     });
   }
 }

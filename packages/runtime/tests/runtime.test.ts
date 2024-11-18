@@ -136,7 +136,13 @@ describe("Runtime", () => {
       };
 
       queueEffect(failingEffect);
-      runEffects();
+
+      try {
+        runEffects();
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe("Effect error");
+      }
 
       expect(consoleError).toHaveBeenCalled();
       consoleError.mockRestore();

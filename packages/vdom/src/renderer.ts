@@ -37,7 +37,15 @@ export function renderApp(container: HTMLElement, appVNode: VNode): void {
     container.appendChild(newDom);
     rootInstance.dom = newDom;
 
-    runEffects();
+    // Run effects after rendering
+    try {
+      runEffects();
+    } catch (error) {
+      const errorDom = renderError(error);
+      if (errorDom) {
+        container.appendChild(errorDom);
+      }
+    }
   }
 }
 
@@ -75,14 +83,7 @@ function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
 
     return childDom;
   } catch (error) {
-    const errorContent = createElement(
-      'div',
-      null,
-      'Error caught',
-      createElement('span', null, String(error)),
-    );
-    const errorDom = render(errorContent);
-    return errorDom;
+    return renderError(error);
   } finally {
     resetCurrentComponent();
   }
@@ -115,4 +116,14 @@ function renderChildren(element: HTMLElement, children: VNodeChild[]): void {
   } else {
     appendChild(children);
   }
+}
+
+function renderError(error: unknown): HTMLElement {
+  const errorContent = createElement(
+    'div',
+    null,
+    'Error caught\n',
+    createElement('span', null, String(error)),
+  );
+  return render(errorContent) as HTMLElement;
 }

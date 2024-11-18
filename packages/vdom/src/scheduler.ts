@@ -11,6 +11,7 @@ import {
   updateComponentInStack,
 } from '@synxjs/runtime';
 import { diff } from './diff';
+import { updateAttributes } from './attributes';
 
 const pendingUpdates = new Set<FunctionalComponentInstance>();
 let isScheduled = false;
@@ -82,6 +83,9 @@ function updateComponent(instance: FunctionalComponentInstance): void {
 
     if (!newVNode) {
       cleanupEffects(updatedInstance);
+      if ((instance.dom as HTMLElement)._listeners) {
+        updateAttributes(instance.dom as HTMLElement, {}, {});
+      }
     }
 
     // Let children render before running any effects

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, render, diff } from '../src';
 import { useEffect } from '../../hooks/src';
+import { runEffects } from '@synxjs/runtime';
 
 describe('Component Behavior', () => {
   let container: HTMLElement;
@@ -66,6 +67,10 @@ describe('Component Behavior', () => {
 
       const initialVNode = createElement(Component, { value: 'initial' });
       const dom = render(initialVNode);
+
+      // Run any pending effects
+      runEffects();
+
       if (dom) {
         container.appendChild(dom);
         const updatedVNode = createElement(Component, { value: 'updated' });

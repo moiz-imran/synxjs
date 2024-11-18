@@ -25,6 +25,7 @@ export interface VNode<T extends VNodeType = VNodeType> {
   props: VNodeProps<T>;
   children: VNodeChildren<T>;
   key?: string | number;
+  renderedChildren?: VNode[];
 }
 
 interface EventListenerMap {

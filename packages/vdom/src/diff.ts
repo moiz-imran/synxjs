@@ -1,4 +1,8 @@
-import type { FunctionalComponent, VNode, VNodeChildren } from '@synxjs/types';
+import type {
+  FunctionalComponent,
+  VNode,
+  VNodeChildren,
+} from '@synxjs/types';
 import {
   componentInstanceCache,
   createFunctionalComponentInstance,
@@ -11,7 +15,6 @@ import {
   setCurrentComponent,
   updateComponentInStack,
 } from '@synxjs/runtime';
-import { createElement } from './create-element';
 
 export function diff(
   newVNode: VNode | null,
@@ -25,6 +28,13 @@ export function diff(
   if (newVNode === null || newVNode === undefined) {
     if (oldVNode) {
       if (typeof oldVNode.type === 'function') {
+        // Clean up rendered children recursively
+        if (oldVNode.renderedChildren) {
+          oldVNode.renderedChildren.forEach((child, i) => {
+            diff(null, child, parent, index + i);
+          });
+        }
+        // Clean up the instance
         const instance = componentInstanceCache.get(
           oldVNode as VNode<FunctionalComponent>,
         );
@@ -33,12 +43,21 @@ export function diff(
           componentInstanceCache.delete(oldVNode as VNode<FunctionalComponent>);
         }
       }
-      if (existingElement) parent.removeChild(existingElement);
+
+      // Clean up element listeners if it exists
+      if (existingElement?._listeners) {
+        updateAttributes(existingElement, {}, {});
+      }
+
+      // Remove the element
+      if (existingElement) {
+        parent.removeChild(existingElement);
+      }
     }
     return;
   }
 
-  if (typeof newVNode === 'object' && typeof newVNode.type === 'function') {
+  if (typeof newVNode.type === 'function') {
     diffFunctionalComponent(
       newVNode as VNode<FunctionalComponent>,
       oldVNode as VNode<FunctionalComponent> | null,
@@ -48,7 +67,7 @@ export function diff(
     return;
   }
 
-  if (typeof newVNode === 'object' && typeof newVNode.type === 'string') {
+  if (typeof newVNode.type === 'string') {
     diffElement(newVNode, oldVNode as VNode, parent, index);
     return;
   }
@@ -73,16 +92,11 @@ function diffFunctionalComponent(
     if (!instance) {
       instance = createFunctionalComponentInstance(newVNode);
     } else {
-      // Clean up old event listeners before updating instance
-      if (instance.dom && instance.lastRendered) {
-        updateAttributes(
-          instance.dom as HTMLElement,
-          {}, // New props empty to remove all listeners
-          instance.lastRendered.props || {},
-        );
+      // Before updating instance, clean up old listeners if they exist
+      if ((instance.dom as HTMLElement)?._listeners) {
+        updateAttributes(instance.dom as HTMLElement, {}, {});
       }
 
-      // Update instance with new vnode
       instance = {
         ...instance,
         vnode: newVNode,
@@ -92,10 +106,23 @@ function diffFunctionalComponent(
 
     componentInstanceCache.set(newVNode, instance);
     setCurrentComponent(instance);
+
     const renderedNode = instance.render();
 
+    // Store rendered children in both instance and vnode
+    const renderedChildren = Array.isArray(renderedNode)
+      ? (renderedNode as VNode[])
+      : [renderedNode as VNode];
+
+    instance.lastRendered = renderedNode as VNode;
+    newVNode.renderedChildren = renderedChildren;
+
     if (instance.dom) {
-      diff(renderedNode as VNode, instance.lastRendered || null, parent, index);
+      // Use the stored children for diffing
+      const oldChildren = oldVNode?.renderedChildren || [];
+      renderedChildren.forEach((child, i) => {
+        diff(child, oldChildren[i] || null, parent, index + i);
+      });
     } else {
       const newDom = renderVNode(renderedNode);
       if (newDom) {
@@ -108,22 +135,6 @@ function diffFunctionalComponent(
         instance.dom = newDom;
       }
     }
-
-    // Store last rendered node for next update
-    instance.lastRendered = renderedNode as VNode;
-  } catch (error) {
-    // Handle error by rendering error boundary content
-    const errorContent = createElement('div', null, 'Error caught');
-    const errorDom = renderVNode(errorContent);
-    if (errorDom) {
-      const existingElement = parent.childNodes[index];
-      if (existingElement) {
-        parent.replaceChild(errorDom, existingElement);
-      } else {
-        parent.appendChild(errorDom);
-      }
-    }
-    throw error; // Re-throw for test environment
   } finally {
     resetCurrentComponent();
   }
@@ -144,11 +155,16 @@ function diffElement(
   }
 
   if (existingElement.nodeName.toLowerCase() !== newVNode.type) {
+    // Clean up old listeners before replacing
+    if (existingElement._listeners) {
+      updateAttributes(existingElement, {}, {});
+    }
     const newDom = renderVNode(newVNode);
     if (newDom) parent.replaceChild(newDom, existingElement);
     return;
   }
 
+  // Always update attributes to ensure proper listener cleanup and addition
   updateAttributes(
     existingElement,
     newVNode.props || {},
