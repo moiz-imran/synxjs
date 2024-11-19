@@ -174,58 +174,6 @@ describe('Reactivity', () => {
       obj.nested = { count: 1 };
       expect(dummy).toBe(1);
     });
-
-    // it('should handle cleanup with missing dependencies', () => {
-    //   const obj = reactive({ count: 0 });
-    //   const fn = vi.fn(() => {
-    //     obj.count;
-    //   });
-
-    //   // Create an effect and track dependency
-    //   const cleanup = effect(fn);
-    //   expect(fn).toHaveBeenCalledTimes(1);
-
-    //   // Manually corrupt the targetMap to test edge cases
-    //   const deps = _testing.effectDependencies.get(fn);
-    //   if (deps) {
-    //     // Add a non-existent target to dependencies
-    //     deps.add([{}, 'nonexistent']);
-    //   }
-
-    //   // Run cleanup - should handle missing deps gracefully
-    //   cleanup();
-    //   expect(fn).toHaveBeenCalledTimes(1);
-
-    //   // Verify original cleanup still worked
-    //   obj.count++;
-    //   expect(fn).toHaveBeenCalledTimes(1);
-    // });
-
-    // it('should handle cleanup with missing dep set', () => {
-    //   const obj = reactive({ count: 0 });
-    //   const fn = vi.fn(() => {
-    //     obj.count;
-    //   });
-
-    //   // Create an effect and track dependency
-    //   const cleanup = effect(fn);
-
-    //   const effectDeps = _testing.effectDependencies.get(fn);
-    //   effectDeps?.forEach(([target, key]) => {
-    //     const depsMap = _testing.targetMap.get(target);
-    //     if (depsMap) {
-    //       // Explicitly set undefined as the dep Set
-    //       depsMap.set(key, undefined as any);
-    //     }
-    //   });
-
-    //   // Run cleanup - should handle missing dep set gracefully
-    //   cleanup();
-
-    //   // Verify cleanup worked
-    //   obj.count++;
-    //   expect(fn).toHaveBeenCalledTimes(1);
-    // });
   });
 
   describe('effect cleanup', () => {
@@ -373,6 +321,37 @@ describe('Reactivity', () => {
       // Add the property back
       (obj as any).count = 1;
       expect(fn).toHaveBeenCalledTimes(1); // Should not trigger
+    });
+  });
+
+  describe('multiple nested property updates', () => {
+    it('should handle multiple nested property updates', () => {
+      const obj = reactive({
+        nested: {
+          a: { value: 1 },
+          b: { value: 2 }
+        }
+      });
+
+      const fn = vi.fn(() => {
+        obj.nested.a.value + obj.nested.b.value;
+      });
+
+      effect(fn);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      obj.nested.a.value = 3;
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      obj.nested.b.value = 4;
+      expect(fn).toHaveBeenCalledTimes(3);
+
+      // Update both simultaneously by replacing parent
+      obj.nested = {
+        a: { value: 5 },
+        b: { value: 6 }
+      };
+      expect(fn).toHaveBeenCalledTimes(4);
     });
   });
 });

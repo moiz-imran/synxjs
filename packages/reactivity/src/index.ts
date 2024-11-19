@@ -11,55 +11,55 @@ const effectDependencies = new WeakMap<
   Set<[object, string | symbol]>
 >();
 
+// Cache for already-created reactive objects
+const reactiveMap = new WeakMap<object, object>();
+
 /**
  * Creates a reactive proxy of the given target object.
  * @param target - The object to make reactive.
  * @returns A reactive proxy of the target object.
  */
 export function reactive<T extends object>(target: T): T {
-  // Need to recursively make nested objects reactive
+  // Return cached version if it exists
+  const existingProxy = reactiveMap.get(target);
+  if (existingProxy) {
+    return existingProxy as T;
+  }
+
   const handler: ProxyHandler<T> = {
     get(target: T, key: string | symbol): unknown {
       const value = target[key as keyof T];
 
-      // Make nested objects reactive
-      if (typeof value === 'object' && value !== null) {
-        return reactive(value as object);
+      // Only track if there's an active effect
+      if (activeEffect) {
+        track(target, key);
       }
 
-      track(target, key);
-      return value;
+      // Transform to reactive if needed
+      return typeof value === 'object' && value !== null
+        ? reactive(value as object)
+        : value;
     },
     set(target: T, key: string | symbol, value: unknown): boolean {
       const oldValue = target[key as keyof T];
 
-      // If setting a new object, make it reactive first
-      if (typeof value === "object" && value !== null) {
+      // Make new value reactive if needed
+      if (typeof value === 'object' && value !== null) {
         value = reactive(value as object);
       }
 
       const result = Reflect.set(target, key, value);
 
-      // Only trigger if value actually changed
       if (oldValue !== value) {
         trigger(target, key);
-
-        // If we're replacing an object, we need to re-run effects
-        // that depend on any of its properties
-        if (typeof oldValue === "object" && oldValue !== null) {
-          const depsMap = targetMap.get(oldValue);
-          if (depsMap) {
-            depsMap.forEach((effects) => {
-              effects.forEach((effect) => effect());
-            });
-          }
-        }
       }
       return result;
     },
   };
 
-  return new Proxy(target, handler);
+  const proxy = new Proxy(target, handler);
+  reactiveMap.set(target, proxy);
+  return proxy;
 }
 
 /**
@@ -68,19 +68,24 @@ export function reactive<T extends object>(target: T): T {
  * @param key - The property key being accessed.
  */
 function track(target: object, key: string | symbol): void {
-  if (activeEffect) {
-    let depsMap = targetMap.get(target);
-    if (!depsMap) {
-      depsMap = new Map<string | symbol, Set<Effect>>();
-      targetMap.set(target, depsMap);
-    }
+  console.log('[reactivity] track', target, key);
+  // Skip tracking if no active effect
+  if (!activeEffect) return;
 
-    let dep = depsMap.get(key);
-    if (!dep) {
-      dep = new Set<Effect>();
-      depsMap.set(key, dep);
-    }
+  let depsMap = targetMap.get(target);
+  if (!depsMap) {
+    depsMap = new Map<string | symbol, Set<Effect>>();
+    targetMap.set(target, depsMap);
+  }
 
+  let dep = depsMap.get(key);
+  if (!dep) {
+    dep = new Set<Effect>();
+    depsMap.set(key, dep);
+  }
+
+  // Only add if not already tracked
+  if (!dep.has(activeEffect)) {
     dep.add(activeEffect);
 
     let effectDeps = effectDependencies.get(activeEffect);
@@ -103,8 +108,14 @@ function trigger(target: object, key: string | symbol): void {
 
   const dep = depsMap.get(key);
   if (dep) {
+    // Create a new set to avoid infinite loops
     const effects = new Set(dep);
-    effects.forEach((effect) => effect());
+    effects.forEach((effect) => {
+      // Don't trigger if it's the current active effect
+      if (effect !== activeEffect) {
+        effect();
+      }
+    });
   }
 }
 
@@ -154,5 +165,5 @@ export function effect(eff: Effect): () => void {
 
 export const _testing = {
   effectDependencies,
-  targetMap
+  targetMap,
 };
