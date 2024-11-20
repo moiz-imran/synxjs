@@ -196,4 +196,228 @@ describe('PulseStore', () => {
       });
     });
   });
+
+  describe('nested objects', () => {
+    it('should handle deep nested updates', () => {
+      const store = new PulseStore({
+        user: {
+          profile: {
+            settings: {
+              theme: 'dark'
+            }
+          }
+        }
+      });
+
+      const callback = vi.fn();
+      store.subscribe('user', callback);
+      callback.mockClear();
+
+      store.setPulse('user', {
+        profile: {
+          settings: {
+            theme: 'light'
+          }
+        }
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(store.getPulse('user')).toEqual({
+        profile: {
+          settings: {
+            theme: 'light'
+          }
+        }
+      });
+    });
+
+    it('should handle partial nested updates', () => {
+      const store = new PulseStore({
+        config: {
+          features: {
+            a: true,
+            b: false
+          },
+          version: '1.0'
+        }
+      });
+
+      const callback = vi.fn();
+      store.subscribe('config', callback);
+      callback.mockClear();
+
+      store.setPulse('config', {
+        ...store.getPulse('config'),
+        features: {
+          ...store.getPulse('config').features,
+          b: true
+        }
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(store.getPulse('config')).toEqual({
+        features: {
+          a: true,
+          b: true
+        },
+        version: '1.0'
+      });
+    });
+
+    it('should handle arrays in nested objects', () => {
+      const store = new PulseStore({
+        lists: {
+          todos: [
+            { id: 1, text: 'Test', done: false }
+          ]
+        }
+      });
+
+      const callback = vi.fn();
+      store.subscribe('lists', callback);
+      callback.mockClear();
+
+      store.setPulse('lists', {
+        todos: [
+          { id: 1, text: 'Test', done: true },
+          { id: 2, text: 'New', done: false }
+        ]
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(store.getPulse('lists').todos).toHaveLength(2);
+      expect(store.getPulse('lists').todos[0].done).toBe(true);
+    });
+
+    it('should handle null values in nested objects', () => {
+      const store = new PulseStore({
+        data: {
+          optional: null as { value: string } | null
+        }
+      });
+
+      const callback = vi.fn();
+      store.subscribe('data', callback);
+      callback.mockClear();
+
+      store.setPulse('data', {
+        optional: { value: 'test' }
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      callback.mockClear();
+      store.setPulse('data', {
+        optional: null
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle nested object cleanup', () => {
+      const store = new PulseStore({
+        settings: {
+          theme: {
+            mode: 'dark',
+            custom: {
+              primary: '#000'
+            }
+          }
+        }
+      });
+
+      const callback = vi.fn();
+      const cleanup = store.subscribe('settings', callback);
+      callback.mockClear();
+
+      store.setPulse('settings', {
+        theme: {
+          mode: 'light',
+          custom: {
+            primary: '#fff'
+          }
+        }
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      cleanup();
+
+      store.setPulse('settings', {
+        theme: {
+          mode: 'system',
+          custom: {
+            primary: '#gray'
+          }
+        }
+      });
+      expect(callback).toHaveBeenCalledTimes(1); // Should not increase
+    });
+
+    it('should handle multiple subscribers to different nesting levels', () => {
+      const store = new PulseStore({
+        app: {
+          ui: {
+            sidebar: {
+              width: 240,
+              collapsed: false
+            }
+          }
+        }
+      });
+
+      const rootCallback = vi.fn();
+      const nestedCallback = vi.fn();
+
+      store.subscribe('app', rootCallback);
+      store.subscribe('app', nestedCallback);
+      rootCallback.mockClear();
+      nestedCallback.mockClear();
+
+      store.setPulse('app', {
+        ui: {
+          sidebar: {
+            width: 200,
+            collapsed: true
+          }
+        }
+      });
+
+      expect(rootCallback).toHaveBeenCalledTimes(1);
+      expect(nestedCallback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle replacing entire nested structures', () => {
+      const store = new PulseStore({
+        state: {
+          nested: {
+            deep: {
+              value: 1
+            },
+            other: true
+          }
+        }
+      });
+
+      const callback = vi.fn();
+      store.subscribe('state', callback);
+      callback.mockClear();
+
+      store.setPulse('state', {
+        nested: {
+          deep: {
+            value: 2
+          },
+          other: false
+        }
+      });
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(store.getPulse('state')).toEqual({
+        nested: {
+          deep: {
+            value: 2
+          },
+          other: false
+        }
+      });
+    });
+  });
 });

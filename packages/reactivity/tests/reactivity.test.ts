@@ -354,4 +354,158 @@ describe('Reactivity', () => {
       expect(fn).toHaveBeenCalledTimes(4);
     });
   });
+
+  describe('pulse hooks with nested objects', () => {
+    it('should track nested object mutations', () => {
+      const state = reactive({
+        user: {
+          profile: {
+            name: 'John',
+            settings: {
+              theme: 'dark'
+            }
+          }
+        }
+      });
+
+      const nameEffect = vi.fn(() => {
+        state.user.profile.name;
+      });
+      const themeEffect = vi.fn(() => {
+        state.user.profile.settings.theme;
+      });
+
+      effect(nameEffect);
+      effect(themeEffect);
+
+      // Initial calls
+      expect(nameEffect).toHaveBeenCalledTimes(1);
+      expect(themeEffect).toHaveBeenCalledTimes(1);
+
+      // Update deep property
+      state.user.profile.settings.theme = 'light';
+      expect(themeEffect).toHaveBeenCalledTimes(2);
+      expect(nameEffect).toHaveBeenCalledTimes(1); // Shouldn't trigger name effect
+
+      // Replace intermediate object
+      state.user.profile = {
+        name: 'Jane',
+        settings: { theme: 'system' }
+      };
+      expect(nameEffect).toHaveBeenCalledTimes(2);
+      expect(themeEffect).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle array mutations in nested objects', () => {
+      const state = reactive({
+        lists: {
+          todos: [
+            { id: 1, text: 'Test' }
+          ]
+        }
+      });
+
+      const todosEffect = vi.fn(() => {
+        state.lists.todos.length;
+      });
+      const firstTodoEffect = vi.fn(() => {
+        state.lists.todos[0]?.text;
+      });
+
+      effect(todosEffect);
+      effect(firstTodoEffect);
+
+      // Initial calls
+      expect(todosEffect).toHaveBeenCalledTimes(1);
+      expect(firstTodoEffect).toHaveBeenCalledTimes(1);
+
+      // Push new item
+      state.lists.todos.push({ id: 2, text: 'New' });
+      expect(todosEffect).toHaveBeenCalledTimes(2);
+      expect(firstTodoEffect).toHaveBeenCalledTimes(1); // Shouldn't affect first item
+
+      // Modify first item
+      state.lists.todos[0].text = 'Updated';
+      expect(todosEffect).toHaveBeenCalledTimes(2);
+      expect(firstTodoEffect).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle cleanup of nested effects', () => {
+      const state = reactive({
+        settings: {
+          display: {
+            color: 'red',
+            size: 'large'
+          }
+        }
+      });
+
+      const colorEffect = vi.fn(() => {
+        state.settings.display.color;
+      });
+      const sizeEffect = vi.fn(() => {
+        state.settings.display.size;
+      });
+
+      const cleanup1 = effect(colorEffect);
+      const cleanup2 = effect(sizeEffect);
+
+      // Initial calls
+      expect(colorEffect).toHaveBeenCalledTimes(1);
+      expect(sizeEffect).toHaveBeenCalledTimes(1);
+
+      // Cleanup first effect
+      cleanup1();
+
+      // These changes should only trigger remaining effect
+      state.settings.display.color = 'blue';
+      state.settings.display.size = 'small';
+
+      expect(colorEffect).toHaveBeenCalledTimes(1); // No additional calls
+      expect(sizeEffect).toHaveBeenCalledTimes(2);
+
+      // Cleanup second effect
+      cleanup2();
+
+      // No more effects should trigger
+      state.settings.display = { color: 'green', size: 'medium' };
+      expect(colorEffect).toHaveBeenCalledTimes(1);
+      expect(sizeEffect).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle conditional access of nested properties', () => {
+      const state = reactive({
+        optional: {
+          nested: null as { value: string } | null
+        }
+      });
+
+      const effect1 = vi.fn(() => {
+        // Safely access potentially null nested property
+        console.log('[TEST] effect1', state.optional.nested?.value);
+        state.optional.nested?.value;
+      });
+
+      effect(effect1);
+      expect(effect1).toHaveBeenCalledTimes(1);
+
+      // Set nested object
+      console.log('[TEST] setting nested', state);
+      state.optional.nested = { value: 'test' };
+      expect(effect1).toHaveBeenCalledTimes(2);
+      console.log('[TEST] set nested', state);
+
+      // Update nested value
+      console.log('[TEST] setting nested value', state);
+      state.optional.nested.value = 'updated';
+      expect(effect1).toHaveBeenCalledTimes(3);
+      console.log('[TEST] set nested value', state);
+
+      // Set back to null
+      console.log('[TEST] setting nested to null', state);
+      state.optional.nested = null;
+      expect(effect1).toHaveBeenCalledTimes(4);
+      console.log('[TEST] set nested to null', state);
+    });
+  });
 });

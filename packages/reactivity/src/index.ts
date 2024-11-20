@@ -14,13 +14,15 @@ const effectDependencies = new WeakMap<
 // Cache for already-created reactive objects
 const reactiveMap = new WeakMap<object, object>();
 
+// Track parent-child relationships
+const parentMap = new WeakMap<object, object>();
+
 /**
  * Creates a reactive proxy of the given target object.
  * @param target - The object to make reactive.
  * @returns A reactive proxy of the target object.
  */
 export function reactive<T extends object>(target: T): T {
-  // Return cached version if it exists
   const existingProxy = reactiveMap.get(target);
   if (existingProxy) {
     return existingProxy as T;
@@ -30,15 +32,30 @@ export function reactive<T extends object>(target: T): T {
     get(target: T, key: string | symbol): unknown {
       const value = target[key as keyof T];
 
-      // Only track if there's an active effect
+      // Track access
       if (activeEffect) {
         track(target, key);
       }
 
+      // Handle array methods
+      if (Array.isArray(target) && typeof value === 'function') {
+        return function(...args: unknown[]) {
+          track(target, 'length');
+          const result = value.apply(target, args);
+          trigger(target, 'length');
+          return result;
+        };
+      }
+
       // Transform to reactive if needed
-      return typeof value === 'object' && value !== null
-        ? reactive(value as object)
-        : value;
+      if (typeof value === 'object' && value !== null) {
+        const reactive_value = reactive(value as object);
+        // Store parent relationship
+        parentMap.set(reactive_value, target);
+        return reactive_value;
+      }
+
+      return value;
     },
     set(target: T, key: string | symbol, value: unknown): boolean {
       const oldValue = target[key as keyof T];
@@ -46,15 +63,39 @@ export function reactive<T extends object>(target: T): T {
       // Make new value reactive if needed
       if (typeof value === 'object' && value !== null) {
         value = reactive(value as object);
+        // Store parent relationship
+        parentMap.set(value as object, target);
       }
 
       const result = Reflect.set(target, key, value);
 
       if (oldValue !== value) {
+        // Trigger the immediate property change
         trigger(target, key);
+
+        // If this is a value property, trigger effects up the parent chain
+        if (key === 'value') {
+          let current = target;
+          while (current) {
+            const parent = parentMap.get(current);
+            if (!parent) break;
+
+            const depsMap = targetMap.get(parent);
+            if (depsMap) {
+              depsMap.forEach((effects, key) => {
+                effects.forEach(effect => {
+                  if (effect !== activeEffect) {
+                    effect();
+                  }
+                });
+              });
+            }
+            current = parent as T;
+          }
+        }
       }
       return result;
-    },
+    }
   };
 
   const proxy = new Proxy(target, handler);
@@ -68,7 +109,6 @@ export function reactive<T extends object>(target: T): T {
  * @param key - The property key being accessed.
  */
 function track(target: object, key: string | symbol): void {
-  console.log('[reactivity] track', target, key);
   // Skip tracking if no active effect
   if (!activeEffect) return;
 
@@ -126,6 +166,7 @@ function cleanupEffect(effect: Effect): void {
   const deps = effectDependencies.get(effect);
   if (!deps) return;
 
+  // Remove effect from all dependencies
   deps.forEach(([target, key]) => {
     const depsMap = targetMap.get(target);
     if (!depsMap) return;
@@ -135,6 +176,7 @@ function cleanupEffect(effect: Effect): void {
 
     dep.delete(effect);
 
+    // Cleanup empty sets
     if (dep.size === 0) {
       depsMap.delete(key);
     }
@@ -143,6 +185,7 @@ function cleanupEffect(effect: Effect): void {
     }
   });
 
+  // Clear effect dependencies
   effectDependencies.delete(effect);
 }
 
