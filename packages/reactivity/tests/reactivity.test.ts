@@ -482,7 +482,6 @@ describe('Reactivity', () => {
 
       const effect1 = vi.fn(() => {
         // Safely access potentially null nested property
-        console.log('[TEST] effect1', state.optional.nested?.value);
         state.optional.nested?.value;
       });
 
@@ -490,22 +489,16 @@ describe('Reactivity', () => {
       expect(effect1).toHaveBeenCalledTimes(1);
 
       // Set nested object
-      console.log('[TEST] setting nested', state);
       state.optional.nested = { value: 'test' };
       expect(effect1).toHaveBeenCalledTimes(2);
-      console.log('[TEST] set nested', state);
 
       // Update nested value
-      console.log('[TEST] setting nested value', state);
       state.optional.nested.value = 'updated';
       expect(effect1).toHaveBeenCalledTimes(3);
-      console.log('[TEST] set nested value', state);
 
       // Set back to null
-      console.log('[TEST] setting nested to null', state);
       state.optional.nested = null;
       expect(effect1).toHaveBeenCalledTimes(4);
-      console.log('[TEST] set nested to null', state);
     });
   });
 });

@@ -105,7 +105,6 @@ describe('Renderer Edge Cases', () => {
     const dom1 = render(vnode);
     const dom2 = render(vnode);
 
-    console.log(dom1, dom2);
     expect(dom1).toEqual(dom2);
   });
 

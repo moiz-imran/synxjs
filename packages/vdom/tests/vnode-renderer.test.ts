@@ -62,7 +62,6 @@ describe('VNode Renderer Edge Cases', () => {
       null,
     );
     const dom = renderVNode(vnode);
-    console.log(dom);
     expect(dom).toBeNull();
   });
 
