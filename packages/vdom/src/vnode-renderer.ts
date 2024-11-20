@@ -18,7 +18,7 @@ export function renderVNode(
   node: VNode | string | number | null,
   parentInstance?: FunctionalComponentInstance,
 ): DOMNode | null {
-  if (!node) return null;
+  if (node === null || node === undefined) return null;
 
   // Handle text nodes
   if (typeof node === 'string' || typeof node === 'number') {

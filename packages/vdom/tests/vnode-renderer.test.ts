@@ -37,6 +37,21 @@ describe('VNode Renderer', () => {
     expect(dom instanceof HTMLDivElement).toBe(true);
     expect(dom?.childNodes.length).toBe(0);
   });
+
+  it('should handle numeric zero values', () => {
+    const vnode = createElement('div', null, 0);
+    const dom = renderVNode(vnode);
+    expect(dom).toBeTruthy();
+    expect(dom?.textContent).toBe('0');
+  });
+
+  it('should only skip null and undefined', () => {
+    const nullVNode = createElement('div', null, null);
+    const undefinedVNode = createElement('div', null, undefined);
+
+    expect(renderVNode(nullVNode)?.childNodes?.length).toBe(0);
+    expect(renderVNode(undefinedVNode)?.childNodes?.length).toBe(0);
+  });
 });
 
 describe('VNode Renderer Edge Cases', () => {

@@ -1,0 +1,25 @@
+{
+  "name": "@synxjs/router",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": ["dist/**"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "test": "vitest --silent=false --watch --coverage",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "dependencies": {
+    "@synxjs/types": "workspace:*",
+    "@synxjs/hooks": "workspace:*",
+    "@synxjs/store": "workspace:*",
+    "@synxjs/vdom": "workspace:*",
+    "@synxjs/jsx-runtime": "workspace:*",
+    "@synxjs/jsx-dev-runtime": "workspace:*",
+    "@synxjs/runtime": "workspace:*"
+  }
+}

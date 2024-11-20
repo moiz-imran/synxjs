@@ -339,4 +339,28 @@ describe('Diff', () => {
       }
     });
   });
+
+  describe('Component Behavior', () => {
+    it('should maintain state through route changes', async () => {
+      const Counter = ({ count }: { count: number }) =>
+        createElement('div', null, `Count: ${count}`);
+
+      // First render
+      const initialVNode = createElement(Counter as FunctionalComponent, { count: 0 });
+      const dom = render(initialVNode);
+      if (dom) {
+        container.appendChild(dom);
+        expect(container.textContent).toBe('Count: 0');
+
+        // Simulate unmount (route change away)
+        diff(null, initialVNode, container, 0);
+
+        // Simulate remount (route change back)
+        const remountVNode = createElement(Counter as FunctionalComponent, { count: 0 });
+        diff(remountVNode, null, container, 0);
+
+        expect(container.textContent).toBe('Count: 0');
+      }
+    });
+  });
 });

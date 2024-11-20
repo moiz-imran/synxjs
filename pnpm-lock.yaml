@@ -50,6 +50,9 @@ importers:
       '@synxjs/jsx-runtime':
         specifier: workspace:*
         version: link:../../packages/jsx-runtime
+      '@synxjs/router':
+        specifier: workspace:*
+        version: link:../../packages/router
       '@synxjs/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
@@ -168,6 +171,30 @@ importers:
       '@synxjs/types':
         specifier: workspace:*
         version: link:../types
+
+  packages/router:
+    dependencies:
+      '@synxjs/hooks':
+        specifier: workspace:*
+        version: link:../hooks
+      '@synxjs/jsx-dev-runtime':
+        specifier: workspace:*
+        version: link:../jsx-dev-runtime
+      '@synxjs/jsx-runtime':
+        specifier: workspace:*
+        version: link:../jsx-runtime
+      '@synxjs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@synxjs/store':
+        specifier: workspace:*
+        version: link:../store
+      '@synxjs/types':
+        specifier: workspace:*
+        version: link:../types
+      '@synxjs/vdom':
+        specifier: workspace:*
+        version: link:../vdom
 
   packages/runtime:
     dependencies:
