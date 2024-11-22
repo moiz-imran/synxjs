@@ -1,4 +1,4 @@
-import { usePulseState, usePulseEffect } from '@synxjs/hooks';
+import { usePulseState } from '@synxjs/hooks';
 import { matchRoute } from './matcher';
 import { getRouter } from './context';
 

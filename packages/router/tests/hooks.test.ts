@@ -47,9 +47,11 @@ describe('Router Hooks', () => {
       expect(typeof result.navigate).toBe('function');
     });
 
-    it('should handle route changes', () => {
+    it('should handle route changes', async () => {
       const { navigate } = useRouter();
       navigate('/about');
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Verify navigation happened
       expect(window.location.pathname).toBe('/about');
@@ -88,14 +90,14 @@ describe('Router Hooks', () => {
   });
 
   describe('useSearchParams', () => {
-    it('should return search params', () => {
+    it('should return search params', async () => {
       vi.mocked(usePulseState).mockImplementation((key) => {
         if (key === 'state') {
           return [
             {
               currentRoute: '/search',
               params: {},
-              search: { query: 'test' },
+              search: { query: 'test' }
             },
             vi.fn(),
           ];
@@ -107,10 +109,10 @@ describe('Router Hooks', () => {
         }
         return [null, vi.fn()];
       });
-
       const { navigate } = useRouter();
       navigate('/search?query=test');
 
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const searchParams = useSearchParams();
       expect(searchParams).toEqual({ query: 'test' });
     });

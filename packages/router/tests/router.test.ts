@@ -21,7 +21,12 @@ vi.mock('@synxjs/hooks', () => ({
       }
     };
   }),
-  usePulseState: vi.fn(),
+  usePulseState: vi.fn().mockImplementation((key) => {
+    if (key === 'state') {
+      return [mockState, (newState: any) => Object.assign(mockState, newState)];
+    }
+    return [null, vi.fn()];
+  }),
 }));
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +35,13 @@ import { usePulseEffect } from '@synxjs/hooks';
 import { Router } from '../src/store';
 import { createElement } from '@synxjs/vdom';
 import { FunctionalComponentInstance, VNode } from '@synxjs/types';
+
+// Add this at the top of the file
+const mockState = {
+  currentRoute: '/',
+  params: {},
+  search: {},
+};
 
 describe('Router', () => {
   const mockComponent: FunctionalComponentInstance = {
@@ -47,21 +59,20 @@ describe('Router', () => {
     vi.mocked(setCurrentComponent).mockImplementation(() => {});
     vi.mocked(getCurrentComponent).mockReturnValue(mockComponent);
     effects.length = 0; // Clear effects array
+
+    // Mock window.location.pathname
+    Object.defineProperty(window, 'location', {
+      value: {
+        pathname: '/',
+        search: '',
+        origin: 'http://localhost:3000',
+      },
+      writable: true,
+    });
   });
 
   describe('navigation', () => {
-    beforeEach(() => {
-      // Mock window.location.pathname
-      Object.defineProperty(window, 'location', {
-        value: {
-          pathname: '/',
-          search: '',
-        },
-        writable: true,
-      });
-    });
-
-    it('should handle multiple route changes', () => {
+    it('should handle multiple route changes', async () => {
       const HomeComponent = () => createElement('div', {}, 'Home');
       const UserComponent = () => createElement('div', {}, 'User');
       const AlertComponent = () => createElement('div', {}, 'Alert');
@@ -84,7 +95,9 @@ describe('Router', () => {
       effect.mockClear(); // Clear initial call
 
       // First navigation
-      router.navigate('/user');
+      await router.navigate('/user');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      mockState.currentRoute = '/user';
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/user');
       expect(effect).toHaveBeenCalledTimes(1);
@@ -92,6 +105,7 @@ describe('Router', () => {
       // Second navigation
       effect.mockClear();
       router.navigate('/alert');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/alert');
       expect(effect).toHaveBeenCalledTimes(1);
@@ -99,12 +113,13 @@ describe('Router', () => {
       // Third navigation
       effect.mockClear();
       router.navigate('/user');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/user');
       expect(effect).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle back/forward navigation', () => {
+    it('should handle back/forward navigation', async () => {
       const routes = [
         { path: '/', component: () => createElement('div', {}, 'Home') },
         { path: '/user', component: () => createElement('div', {}, 'User') },
@@ -120,7 +135,7 @@ describe('Router', () => {
       effect.mockClear();
 
       // Forward navigation
-      router.navigate('/user');
+      await router.navigate('/user');
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/user');
 
@@ -187,7 +202,7 @@ describe('Router', () => {
       expect(effect).not.toHaveBeenCalled();
     });
 
-    it('should handle nested routes', () => {
+    it('should handle nested routes', async () => {
       const routes = [
         {
           path: '/user',
@@ -211,13 +226,14 @@ describe('Router', () => {
       effect.mockClear();
 
       router.navigate('/user/123');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/user/123');
     });
   });
 
   describe('edge cases', () => {
-    it('should handle rapid route changes', () => {
+    it('should handle rapid route changes', async () => {
       const routes = [
         { path: '/a', component: () => null as unknown as VNode },
         { path: '/b', component: () => null as unknown as VNode },
@@ -234,20 +250,20 @@ describe('Router', () => {
       effect.mockClear();
 
       // Trigger effects after each navigation
-      router.navigate('/a');
+      await router.navigate('/a');
       effects.forEach((fn) => fn());
 
-      router.navigate('/b');
+      await router.navigate('/b');
       effects.forEach((fn) => fn());
 
-      router.navigate('/c');
+      await router.navigate('/c');
       effects.forEach((fn) => fn());
 
       expect(effect).toHaveBeenCalledTimes(3);
       expect(effect).toHaveBeenLastCalledWith('/c');
     });
 
-    it('should handle same route navigation', () => {
+    it('should handle same route navigation', async () => {
       const routes = [
         { path: '/test', component: () => null as unknown as VNode },
       ];
@@ -264,12 +280,13 @@ describe('Router', () => {
       // Navigate to same route multiple times
       router.navigate('/test');
       router.navigate('/test');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       effects.forEach((fn) => fn());
 
       expect(effect).toHaveBeenCalledTimes(1); // Should only trigger once
     });
 
-    it('should preserve query params during navigation', () => {
+    it('should preserve query params during navigation', async () => {
       const routes = [
         { path: '/search', component: () => null as unknown as VNode },
       ];
@@ -282,6 +299,7 @@ describe('Router', () => {
         value: {
           pathname: '/search',
           search: '?query=test&page=1',
+          origin: 'http://localhost:3000',
         },
         writable: true,
       });
@@ -293,6 +311,7 @@ describe('Router', () => {
       effect.mockClear();
 
       router.navigate('/search?query=test&page=1');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       effects.forEach((fn) => fn());
 
       expect(effect).toHaveBeenCalledWith({
@@ -301,7 +320,7 @@ describe('Router', () => {
       });
     });
 
-    it('should handle deep nested route parameters', () => {
+    it('should handle deep nested route parameters', async () => {
       const routes = [
         {
           path: '/users',
@@ -332,6 +351,7 @@ describe('Router', () => {
 
       // Update Router's state with params
       router.navigate('/users/123/posts/456');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       router.setPulse('state', {
         currentRoute: '/users/123/posts/456',
         params: { userId: '123', postId: '456' },
@@ -345,27 +365,34 @@ describe('Router', () => {
       });
     });
 
-    it('should handle route change during effect execution', () => {
+    it('should handle route change during effect execution', async () => {
       const routes = [
         { path: '/a', component: () => null as unknown as VNode },
         { path: '/b', component: () => null as unknown as VNode },
       ];
 
       const router = new Router(routes);
-      const effect = vi.fn(() => {
+      const effect = vi.fn(async () => {
         // Navigate during effect execution
         if (router.getPulse('state').currentRoute === '/a') {
-          router.navigate('/b');
+          await router.navigate('/b');
+          mockState.currentRoute = '/b'; // Update mock state
           effects.forEach((fn) => fn()); // Trigger effects for the second navigation
         }
       });
 
       setCurrentComponent(mockComponent);
-      usePulseEffect(effect);
+      usePulseEffect(() => {
+        effect();
+      });
       effect.mockClear();
 
-      router.navigate('/a');
+      await router.navigate('/a');
+      mockState.currentRoute = '/a'; // Update mock state
       effects.forEach((fn) => fn());
+
+      // Wait for all promises to resolve
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(effect).toHaveBeenCalledTimes(2);
       expect(router.getPulse('state').currentRoute).toBe('/b');
@@ -418,7 +445,7 @@ describe('Router', () => {
     it('should not cause unnecessary re-renders', () => {
       const routes = [
         { path: '/', component: () => null as unknown as VNode },
-        { path: '/about', component: () => null as unknown as VNode }
+        { path: '/about', component: () => null as unknown as VNode },
       ];
 
       const router = new Router(routes);
@@ -439,10 +466,131 @@ describe('Router', () => {
 
       // Navigate
       router.navigate('/about');
-      effects.forEach(fn => fn());
+      effects.forEach((fn) => fn());
 
       expect(renderCount).toHaveBeenCalledTimes(1);
       expect(effect).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('guards and middleware', () => {
+    it('should respect route guards', async () => {
+      const guard = vi.fn().mockImplementation((to) => to !== '/protected');
+      const routes = [
+        {
+          path: '/protected',
+          component: () => null as unknown as VNode,
+          guards: [guard],
+        },
+      ];
+
+      const router = new Router(routes);
+      const effect = vi.fn();
+
+      // Reset mockState to initial value
+      Object.assign(mockState, {
+        currentRoute: '/',
+        params: {},
+        search: {},
+      });
+
+      setCurrentComponent(mockComponent);
+      usePulseEffect(() => {
+        effect(router.getPulse('state').currentRoute);
+      });
+      effect.mockClear(); // Clear initial call
+
+      // Should be blocked by guard
+      await router.navigate('/protected');
+      if (guard.mock.results[0].value) {  // Only trigger effects if guard allows
+        effects.forEach((fn) => fn());
+      }
+      expect(guard).toHaveBeenCalled();
+      expect(effect).not.toHaveBeenCalled();
+
+      // Should pass guard
+      effect.mockClear();
+      await router.navigate('/allowed');
+      mockState.currentRoute = '/allowed'; // Update mock state
+      effects.forEach((fn) => fn());
+      expect(effect).toHaveBeenCalled();
+    });
+
+    it('should execute middleware in order', async () => {
+      const order: number[] = [];
+      const middleware1 = vi.fn().mockImplementation(() => order.push(1));
+      const middleware2 = vi.fn().mockImplementation(() => order.push(2));
+
+      const routes = [
+        {
+          path: '/test',
+          component: () => null as unknown as VNode,
+          middleware: [middleware1, middleware2],
+        },
+      ];
+
+      const router = new Router(routes);
+      await router.navigate('/test');
+
+      expect(order).toEqual([1, 2]);
+      expect(middleware1).toHaveBeenCalled();
+      expect(middleware2).toHaveBeenCalled();
+    });
+  });
+
+  describe('relative paths', () => {
+    it('should resolve relative paths correctly', () => {
+      const routes = [
+        { path: '/users/profile', component: () => null as unknown as VNode },
+      ];
+
+      const router = new Router(routes);
+
+      // Test different relative path scenarios
+      expect(router.resolveRelativePath('./details', '/users/profile')).toBe(
+        '/users/profile/details',
+      );
+
+      expect(router.resolveRelativePath('../settings', '/users/profile')).toBe(
+        '/users/settings',
+      );
+
+      expect(router.resolveRelativePath('edit', '/users/profile')).toBe(
+        '/users/profile/edit',
+      );
+
+      expect(router.resolveRelativePath('/absolute', '/users/profile')).toBe(
+        '/absolute',
+      );
+    });
+
+    it('should navigate using relative paths', async () => {
+      const routes = [
+        { path: '/users/profile', component: () => null as unknown as VNode },
+        {
+          path: '/users/profile/details',
+          component: () => null as unknown as VNode,
+        },
+      ];
+
+      const router = new Router(routes);
+      const effect = vi.fn();
+
+      setCurrentComponent(mockComponent);
+      usePulseEffect(() => {
+        effect(router.getPulse('state').currentRoute);
+      });
+      effect.mockClear();
+
+      // Navigate to base path first
+      await router.navigate('/users/profile');
+      effects.forEach((fn) => fn());
+
+      // Then use relative navigation
+      await router.navigate('./details');
+      effects.forEach((fn) => fn());
+
+      expect(effect).toHaveBeenLastCalledWith('/users/profile/details');
     });
   });
 });

@@ -9,11 +9,43 @@ export interface RouteMatch {
   pathname: string;
 }
 
-export interface Route {
-  path: string;
-  component: FunctionalComponent<any>;
-  children?: Route[];
+export type RouteGuard = (
+  to: string,
+  from: string,
+) => boolean | Promise<boolean>;
+export type RouteMiddleware = (
+  to: string,
+  from: string,
+) => void | Promise<void>;
+
+export interface RouteTransition {
+  enter?: string;
+  leave?: string;
+  duration?: number;
 }
+
+interface RouteBase {
+  path: string;
+  children?: Route[];
+  guards?: RouteGuard[];
+  middleware?: RouteMiddleware[];
+  transition?: RouteTransition;
+}
+
+interface LazyRoute extends RouteBase {
+  component:
+    | (() => Promise<FunctionalComponent<any>>)
+    | FunctionalComponent<any>;
+  lazy: boolean;
+  error?: FunctionalComponent<any>;
+  loading?: FunctionalComponent<any>;
+}
+
+interface EagerRoute extends RouteBase {
+  component: FunctionalComponent<any>;
+}
+
+export type Route = LazyRoute | EagerRoute;
 
 export interface RouterState {
   currentRoute: string;

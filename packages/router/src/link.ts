@@ -6,15 +6,19 @@ interface LinkProps {
   to: string;
   children?: any;
   className?: string;
+  [key: string]: any; // allow additional props
 }
 
 export function Link({ to, children, ...props }: LinkProps) {
   const router = getRouter();
 
-  const handleClick = useMemo(() => (e: Event) => {
-    e.preventDefault();
-    router.navigate(to);
-  }, [to]);
+  const handleClick = useMemo(
+    () => (e: Event) => {
+      e.preventDefault();
+      router.navigate(to);
+    },
+    [to],
+  );
 
   return createElement(
     'a',
