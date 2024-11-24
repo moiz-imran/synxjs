@@ -250,8 +250,12 @@ function normalizeChildren(
 ): Array<VNode | string | number | null> {
   if (!children) return [];
   return Array.isArray(children)
-    ? children.map((child) =>
-        child === false || child === true || child === undefined ? null : child,
-      )
+    ? children
+        .map((child) =>
+          child === false || child === true || child === undefined
+            ? null
+            : child,
+        )
+        .flat()
     : [children];
 }

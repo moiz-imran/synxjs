@@ -26,6 +26,7 @@ describe('VNode Renderer', () => {
     expect(dom).toBeTruthy();
     expect(instance.dom).toBe(dom);
   });
+
   it('should handle null children in element vnode', () => {
     const vnode = {
       type: 'div',
