@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, render, renderApp } from '../src';
 import { FunctionalComponent } from '@synxjs/types';
+import { useEffect } from '../../hooks/src';
 
 describe('Renderer Edge Cases', () => {
   let container: HTMLElement;
@@ -148,6 +149,19 @@ describe('Renderer Edge Cases', () => {
     );
     const result = render(vnode);
     expect(result).toBeNull();
+  });
+
+  it('should handle null root container', () => {
+    const vnode = createElement('div', null);
+    expect(() => renderApp(null as any, vnode)).toThrow();
+  });
+
+  it('should handle error in component render', () => {
+    const ErrorComponent = () => {
+      throw new Error('Test error');
+    };
+    renderApp(container, createElement(ErrorComponent, null));
+    expect(container.textContent).toContain('Error caught');
   });
 });
 

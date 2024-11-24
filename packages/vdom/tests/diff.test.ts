@@ -363,4 +363,46 @@ describe('Diff', () => {
       }
     });
   });
+
+  describe('Diff Edge Cases', () => {
+    it('should handle cleanup of removed components', () => {
+      const Component = () => createElement('div', null);
+      const vnode = createElement(Component, null);
+      const dom = render(vnode);
+      if (dom) container.appendChild(dom);
+
+      diff(null, vnode, container);
+      expect(container.children.length).toBe(0);
+    });
+
+    it('should handle component replacement', () => {
+      const OldComponent = () => createElement('div', null, 'old');
+      const NewComponent = () => createElement('div', null, 'new');
+
+      const oldVNode = createElement(OldComponent, null);
+      const dom = render(oldVNode);
+      if (dom) container.appendChild(dom);
+
+      const newVNode = createElement(NewComponent, null);
+      diff(newVNode, oldVNode, container);
+      expect(container.textContent).toBe('new');
+    });
+
+    it('should handle text node replacement with element', () => {
+      container.appendChild(document.createTextNode('old'));
+      const newVNode = createElement('div', null, 'new');
+      diff(newVNode, null, container);
+      expect(container.innerHTML).toBe('<div>new</div>');
+    });
+
+    it('should handle element removal with listeners', () => {
+      const handler = vi.fn();
+      const vnode = createElement('button', { onClick: handler }, 'Click');
+      const dom = render(vnode);
+      if (dom) container.appendChild(dom);
+
+      diff(null, vnode, container);
+      expect(container.children.length).toBe(0);
+    });
+  });
 });

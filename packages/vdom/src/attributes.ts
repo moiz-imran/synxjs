@@ -16,7 +16,26 @@ export function updateAttributes(
     delete element._listeners[eventName];
   }
 
-  // Then add new listeners
+  // Remove old props that aren't in newProps
+  for (const name in oldProps) {
+    if (name === 'children' || name === 'key' || name === 'ref') continue;
+
+    if (!(name in newProps)) {
+      if (name.startsWith('on')) {
+        const eventName = name.slice(2).toLowerCase();
+        if (element._listeners[eventName]) {
+          element.removeEventListener(eventName, element._listeners[eventName]);
+          delete element._listeners[eventName];
+        }
+      } else if (name === 'style') {
+        element.style.cssText = '';
+      } else {
+        element.removeAttribute(name);
+      }
+    }
+  }
+
+  // Then add new props
   for (const name in newProps) {
     if (name === 'children' || name === 'key' || name === 'ref') continue;
 
@@ -25,7 +44,6 @@ export function updateAttributes(
       element.removeAttribute(name);
     } else if (name.startsWith('on')) {
       const eventName = name.slice(2).toLowerCase();
-      // Store and add new listener
       element._listeners[eventName] = value as EventListener;
       element.addEventListener(eventName, element._listeners[eventName]);
     } else if (name === 'className') {

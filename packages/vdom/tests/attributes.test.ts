@@ -21,4 +21,20 @@ describe('Attributes', () => {
     updateAttributes(element, { style: undefined }, {});
     expect(element.style.cssText).toBe('');
   });
+
+  it('should handle style object updates', () => {
+    const element = document.createElement('div');
+
+    // Initial style
+    updateAttributes(element, { style: { color: 'red' } }, {});
+    expect(element.style.color).toBe('red');
+
+    // Update style
+    updateAttributes(element, { style: { color: 'blue' } }, { style: { color: 'red' } });
+    expect(element.style.color).toBe('blue');
+
+    // Remove style
+    updateAttributes(element, {}, { style: { color: 'blue' } });
+    expect(element.style.color).toBe('');
+  });
 });
