@@ -92,6 +92,8 @@ export class Router extends PulseStore<RouterStore> {
     const currentPath = this.getPulse('state').currentRoute;
     const resolvedPath = this.resolveRelativePath(to, currentPath);
 
+    if (resolvedPath === currentPath) return;
+
     // Run guards first
     const canProceed = await this.runGuards(resolvedPath, currentPath);
     if (!canProceed) return;
