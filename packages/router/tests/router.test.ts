@@ -502,7 +502,8 @@ describe('Router', () => {
 
       // Should be blocked by guard
       await router.navigate('/protected');
-      if (guard.mock.results[0].value) {  // Only trigger effects if guard allows
+      if (guard.mock.results[0].value) {
+        // Only trigger effects if guard allows
         effects.forEach((fn) => fn());
       }
       expect(guard).toHaveBeenCalled();
@@ -591,6 +592,86 @@ describe('Router', () => {
       effects.forEach((fn) => fn());
 
       expect(effect).toHaveBeenLastCalledWith('/users/profile/details');
+    });
+  });
+
+  describe('global middleware and guards', () => {
+    it('should run global middleware before route middleware', async () => {
+      const order: number[] = [];
+      const globalMiddleware = vi.fn().mockImplementation(() => order.push(1));
+      const routeMiddleware = vi.fn().mockImplementation(() => order.push(2));
+
+      const routes = [
+        {
+          path: '/test',
+          component: () => null as unknown as VNode,
+          middleware: [routeMiddleware],
+        },
+      ];
+
+      const router = new Router(routes, {
+        middleware: [globalMiddleware],
+      });
+
+      await router.navigate('/test');
+
+      expect(order).toEqual([1, 2]);
+      expect(globalMiddleware).toHaveBeenCalled();
+      expect(routeMiddleware).toHaveBeenCalled();
+    });
+
+    it('should run global guards before route guards', async () => {
+      const order: number[] = [];
+      const globalGuard = vi.fn().mockImplementation(() => {
+        order.push(1);
+        return true;
+      });
+      const routeGuard = vi.fn().mockImplementation(() => {
+        order.push(2);
+        return true;
+      });
+
+      const routes = [
+        {
+          path: '/protected',
+          component: () => null as unknown as VNode,
+          guards: [routeGuard],
+        },
+      ];
+
+      const router = new Router(routes, {
+        guards: [globalGuard],
+      });
+
+      await router.navigate('/protected');
+
+      expect(order).toEqual([1, 2]);
+      expect(globalGuard).toHaveBeenCalled();
+      expect(routeGuard).toHaveBeenCalled();
+    });
+
+    it('should stop at first failing global guard', async () => {
+      const globalGuard1 = vi.fn().mockImplementation(() => false);
+      const globalGuard2 = vi.fn().mockImplementation(() => true);
+      const routeGuard = vi.fn().mockImplementation(() => true);
+
+      const routes = [
+        {
+          path: '/protected',
+          component: () => null as unknown as VNode,
+          guards: [routeGuard],
+        },
+      ];
+
+      const router = new Router(routes, {
+        guards: [globalGuard1, globalGuard2],
+      });
+
+      await router.navigate('/protected');
+
+      expect(globalGuard1).toHaveBeenCalled();
+      expect(globalGuard2).not.toHaveBeenCalled();
+      expect(routeGuard).not.toHaveBeenCalled();
     });
   });
 });

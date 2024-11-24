@@ -1,10 +1,10 @@
-import { createElement } from '@synxjs/vdom';
+import { createElement, Fragment } from '@synxjs/vdom';
 import { Router } from './store';
 import { Route } from './types';
 import { matchRoute, matchSingleRoute } from './matcher';
 import { useRouter } from './hooks';
 import type { FunctionalComponent, VNode } from '@synxjs/types';
-import { useEffect, usePulseState, useState } from '@synxjs/hooks';
+import { usePulseState, useState } from '@synxjs/hooks';
 import { setCurrentRouter } from './context';
 
 interface RouterProviderProps {
@@ -70,9 +70,10 @@ export const Routes: FunctionalComponent = () => {
 
   // Load component if not already loading
   if (!loading) {
+    setLoading(true);
     Promise.resolve((route.component as () => Promise<FunctionalComponent>)())
       .then((Component) => {
-        setLoadedComponent(Component);
+        setLoadedComponent(() => Component);
       })
       .catch((error) => {
         console.error('Error loading component', error);
@@ -83,13 +84,12 @@ export const Routes: FunctionalComponent = () => {
       .finally(() => {
         setLoading(false);
       });
-    setLoading(true);
   }
 
   // Return loading component or null during initial load
   return route.loading
     ? createElement(route.loading, null)
-    : (null as unknown as VNode);
+    : createElement(Fragment, null);
 };
 
 export const RouterProvider: FunctionalComponent<RouterProviderProps> = ({

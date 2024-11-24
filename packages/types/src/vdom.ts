@@ -1,7 +1,14 @@
 import { FunctionalComponent, FunctionalComponentInstance } from './component';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type VNodeType = string | FunctionalComponent<any>;
+// Define Fragment as a component type
+export interface FragmentType {
+  (props: { children?: any }): any;
+}
+
+export const Fragment: FragmentType = Symbol('Fragment') as unknown as FragmentType;
+
+// Update VNodeType to use FragmentType
+export type VNodeType = string | FunctionalComponent<any> | FragmentType;
 
 export interface VNodeProps<T extends VNodeType = VNodeType>
   extends Record<string, unknown> {

@@ -6,6 +6,7 @@ declare function createElement(
 ): VNode;
 
 declare global {
+  const Fragment: unique symbol;
   interface Window {
     createElement: typeof createElement;
   }
@@ -30,7 +31,22 @@ namespace JSX {
     h5: HTMLAttributes<HTMLHeadingElement>;
     h6: HTMLAttributes<HTMLHeadingElement>;
     p: HTMLAttributes<HTMLParagraphElement>;
+    aside: HTMLAttributes<HTMLElement>;
+    table: HTMLAttributes<HTMLTableElement>;
+    thead: HTMLAttributes<HTMLTableSectionElement>;
+    tbody: HTMLAttributes<HTMLTableSectionElement>;
+    tr: HTMLAttributes<HTMLTableRowElement>;
+    th: HTMLAttributes<HTMLTableCellElement>;
+    td: HTMLAttributes<HTMLTableCellElement>;
+    dl: HTMLAttributes<HTMLDListElement>;
+    dt: HTMLAttributes<HTMLTableCellElement>;
+    dd: HTMLAttributes<HTMLTableCellElement>;
+    svg: HTMLAttributes<SVGSVGElement>;
+    path: HTMLAttributes<SVGPathElement>;
+    article: HTMLAttributes<HTMLElement>;
   }
+
+  const Fragment: FragmentType;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type

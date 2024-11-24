@@ -1,5 +1,5 @@
 import { PulseStore } from '@synxjs/store';
-import { RouterState, RouterStore, Route } from './types';
+import { RouterState, RouterStore, Route, RouterOptions } from './types';
 import { setCurrentRouter } from './context';
 import { matchRoute } from './matcher';
 import { findRoute } from './components';
@@ -11,10 +11,11 @@ const initialState: RouterState = {
 };
 
 export class Router extends PulseStore<RouterStore> {
-  constructor(routes: Route[]) {
+  constructor(routes: Route[], options?: RouterOptions) {
     super({
       routes,
       state: initialState,
+      options,
     });
 
     // Listen for popstate events
@@ -30,6 +31,14 @@ export class Router extends PulseStore<RouterStore> {
   }
 
   private async runGuards(to: string, from: string): Promise<boolean> {
+    // Run global guards first
+    const globalGuards = this.getPulse('options')?.guards || [];
+    for (const guard of globalGuards) {
+      const result = await guard(to, from);
+      if (!result) return false;
+    }
+
+    // Then run route-specific guards
     const matchedRoute = matchRoute(to, this.getPulse('routes'));
     if (!matchedRoute) return true;
 
@@ -42,6 +51,22 @@ export class Router extends PulseStore<RouterStore> {
     }
 
     return true;
+  }
+
+  private async runMiddleware(to: string, from: string): Promise<void> {
+    // Run global middleware first
+    const globalMiddleware = this.getPulse('options')?.middleware || [];
+    for (const middleware of globalMiddleware) {
+      await middleware(to, from);
+    }
+
+    // Then run route-specific middleware
+    const route = findRoute(to, this.getPulse('routes'));
+    if (route?.middleware) {
+      for (const middleware of route.middleware) {
+        await middleware(to, from);
+      }
+    }
   }
 
   resolveRelativePath(path: string, basePath: string): string {
@@ -72,12 +97,7 @@ export class Router extends PulseStore<RouterStore> {
     if (!canProceed) return;
 
     // Run middleware
-    const route = findRoute(resolvedPath, this.getPulse('routes'));
-    if (route?.middleware) {
-      for (const middleware of route.middleware) {
-        await middleware(resolvedPath, currentPath);
-      }
-    }
+    await this.runMiddleware(resolvedPath, currentPath);
 
     // Parse search params
     const url = new URL(resolvedPath, window.location.origin);

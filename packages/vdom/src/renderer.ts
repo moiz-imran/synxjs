@@ -11,7 +11,7 @@ import {
   runEffects,
   cleanupEffects,
 } from '@synxjs/runtime';
-import { createElement } from './create-element';
+import { createElement, Fragment } from './create-element';
 
 export function renderApp(container: HTMLElement, appVNode: VNode): void {
   // Clean up previous render
@@ -56,6 +56,18 @@ export function render(
 
   if (typeof node === 'string' || typeof node === 'number') {
     return document.createTextNode(node.toString());
+  }
+
+  // Handle Fragment
+  if (node.type === Fragment) {
+    const wrapper = document.createElement('div');
+    node.children.forEach(child => {
+      const childDom = render(child as VNode);
+      if (childDom) {
+        wrapper.appendChild(childDom);
+      }
+    });
+    return wrapper;
   }
 
   if (typeof node.type === 'function') {

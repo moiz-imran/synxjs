@@ -32,7 +32,7 @@ vi.mock('@synxjs/hooks', async (importOriginal) => {
 });
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createElement } from '@synxjs/vdom';
+import { createElement, Fragment } from '@synxjs/vdom';
 import {
   FunctionalComponent,
   FunctionalComponentInstance,
@@ -230,7 +230,7 @@ describe('Router Components', () => {
       });
 
       let result = Routes({});
-      expect(result).toBe(null);
+      expect(result.type).toBe(Fragment);
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       mockComponent.currentHook = 0; // Reset for next render
@@ -242,7 +242,9 @@ describe('Router Components', () => {
       expect(result.props.style).toEqual({
         transition: 'all 300ms',
       });
-      expect((result.children?.[0] as VNode).type).toBe(ContentComponent);
+      expect(
+        ((result.children?.[0] as VNode).type as FunctionalComponent)({}),
+      ).toBe(ContentComponent);
     });
 
     it('should handle lazy loaded components', async () => {
@@ -277,7 +279,9 @@ describe('Router Components', () => {
       mockComponent.currentHook = 0; // Reset for next render
 
       result = Routes({});
-      expect(result.type).toBe(LazyComponent);
+      expect(
+        (result.type as FunctionalComponent)({})
+      ).toBe(LazyComponent);
     });
   });
 });

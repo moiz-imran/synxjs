@@ -3,10 +3,15 @@ import type {
   VNodeProps,
   VNodeChildren,
   FunctionalComponent,
+  FragmentType,
 } from '@synxjs/types';
 
+export const Fragment: FragmentType = Symbol(
+  'Fragment',
+) as unknown as FragmentType;
+
 export function jsx(
-  type: string | FunctionalComponent,
+  type: string | FunctionalComponent | FragmentType,
   props: VNodeProps,
   key: string | number | null,
 ): VNode {
@@ -14,11 +19,10 @@ export function jsx(
   return {
     type,
     props: rest,
-    children: children as VNodeChildren || [],
+    children: (children as VNodeChildren) || [],
     key: key ?? props.key,
   };
 }
 
 export const jsxs = jsx;
 export const jsxDEV = jsx;
-export const Fragment = Symbol('Fragment');

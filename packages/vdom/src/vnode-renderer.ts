@@ -6,10 +6,11 @@ import {
   VNode,
   FunctionalComponentInstance,
   FunctionalComponent,
+  FragmentType,
+  DOMNode,
 } from '@synxjs/types';
 import { updateAttributes } from './attributes';
-
-type DOMNode = HTMLElement | Text;
+import { Fragment } from './create-element';
 
 /**
  * Renders a Virtual DOM node into an actual DOM node.
@@ -25,6 +26,11 @@ export function renderVNode(
     return document.createTextNode(String(node));
   }
 
+  // Handle Fragment
+  if (node.type === Fragment) {
+    return renderFragmentVNode(node as VNode<FragmentType>, parentInstance);
+  }
+
   // Handle functional components
   if (typeof node.type === 'function') {
     return renderFunctionalVNode(
@@ -35,6 +41,32 @@ export function renderVNode(
 
   // Handle regular DOM elements
   return renderElementVNode(node, parentInstance);
+}
+
+function renderFragmentVNode(
+  node: VNode<FragmentType>,
+  parentInstance?: FunctionalComponentInstance,
+): DOMNode | null {
+  const wrapper = document.createElement('div');
+  wrapper.style.display = 'contents'; // Makes the wrapper invisible in the DOM structure
+
+  if (node.children) {
+    const children = Array.isArray(node.children)
+      ? node.children
+      : [node.children];
+    children
+      .filter((child) => child != null && typeof child !== 'boolean')
+      .forEach((child) => {
+        const childDom = renderVNode(child as VNode);
+        if (childDom) wrapper.appendChild(childDom);
+      });
+  }
+
+  if (parentInstance && !parentInstance.dom) {
+    parentInstance.dom = wrapper;
+  }
+
+  return wrapper;
 }
 
 /**

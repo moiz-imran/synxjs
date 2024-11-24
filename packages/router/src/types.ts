@@ -53,9 +53,15 @@ export interface RouterState {
   search: SearchParams;
 }
 
+export interface RouterOptions {
+  middleware?: RouteMiddleware[];
+  guards?: RouteGuard[];
+}
+
 export interface RouterStore extends Record<string, unknown> {
   routes: Route[];
   state: RouterState;
+  options?: RouterOptions;
 }
 
 export interface RouterContext {

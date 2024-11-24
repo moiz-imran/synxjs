@@ -1,8 +1,4 @@
-import type {
-  FunctionalComponent,
-  VNode,
-  VNodeChildren,
-} from '@synxjs/types';
+import type { FunctionalComponent, VNode, VNodeChildren } from '@synxjs/types';
 import {
   componentInstanceCache,
   createFunctionalComponentInstance,
@@ -16,6 +12,7 @@ import {
   updateComponentInStack,
 } from '@synxjs/runtime';
 import { renderError } from './renderer';
+import { Fragment } from './create-element';
 
 export function diff(
   newVNode: VNode | null,
@@ -53,6 +50,27 @@ export function diff(
       // Remove the element
       if (existingElement) {
         parent.removeChild(existingElement);
+      }
+    }
+    return;
+  }
+
+  // Handle Fragment
+  if (newVNode.type === Fragment) {
+    // For Fragments, we just need to diff the children
+    const oldChildren =
+      oldVNode && oldVNode.type === Fragment ? oldVNode.children : [];
+    const newChildren = newVNode.children || [];
+
+    // Diff each child
+    newChildren.forEach((child, i) => {
+      diff(child as VNode, oldChildren[i] as VNode, parent, index + i);
+    });
+
+    // Remove any extra old children
+    if (oldChildren && oldChildren.length > newChildren.length) {
+      for (let i = newChildren.length; i < oldChildren.length; i++) {
+        diff(null, oldChildren[i] as VNode, parent, index + i);
       }
     }
     return;

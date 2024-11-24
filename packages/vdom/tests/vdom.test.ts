@@ -29,7 +29,7 @@ describe('VDOM Core', () => {
       const vnode = createElement(Fragment, null, 'Item 1', 'Item 2');
 
       expect(vnode).toMatchObject({
-        type: typeof Fragment,
+        type: Fragment,
         props: {},
         children: ['Item 1', 'Item 2']
       });
