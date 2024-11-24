@@ -1,27 +1,32 @@
-import { readdirSync, statSync } from 'fs';
-import { join, parse } from 'path';
+import fs from 'fs';
+import path from 'path';
 import type { Route } from './types';
+
+const { join, parse } = path;
 
 export function generateRoutesFromFileSystem(dir: string): Route[] {
   function processDirectory(
     currentDir: string,
     parentPath: string = '',
   ): Route[] {
-    const entries = readdirSync(currentDir);
+    const entries = fs.readdirSync(currentDir);
 
     return entries
       .map((entry) => {
         const fullPath = join(currentDir, entry);
-        const stat = statSync(fullPath);
+        const stat = fs.statSync(fullPath);
 
         if (stat.isDirectory()) {
           const relativePath = join(parentPath, entry);
-          const normalizedPath = entry.startsWith('[') && entry.endsWith(']')
-            ? relativePath.replace(/\[(.*?)\]/g, ':$1')
-            : relativePath;
+          const normalizedPath =
+            entry.startsWith('[') && entry.endsWith(']')
+              ? relativePath.replace(/\[(.*?)\]/g, ':$1')
+              : relativePath;
 
           return {
-            path: normalizedPath.startsWith('/') ? normalizedPath : '/' + normalizedPath,
+            path: normalizedPath.startsWith('/')
+              ? normalizedPath
+              : '/' + normalizedPath,
             component: () => import(join(fullPath, 'index')),
             children: processDirectory(fullPath, normalizedPath),
             lazy: true,
