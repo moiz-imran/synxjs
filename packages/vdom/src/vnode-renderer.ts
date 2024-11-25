@@ -111,6 +111,7 @@ function renderElementVNode(
       ? node.children
       : [node.children];
     children
+      .flat()
       .filter((child) => child != null && typeof child !== 'boolean')
       .forEach((child) => {
         const childDom = renderVNode(child);

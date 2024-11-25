@@ -44,6 +44,8 @@ namespace JSX {
     svg: HTMLAttributes<SVGSVGElement>;
     path: HTMLAttributes<SVGPathElement>;
     article: HTMLAttributes<HTMLElement>;
+    pre: HTMLAttributes<HTMLPreElement>;
+    code: HTMLAttributes<HTMLElement>;
   }
 
   const Fragment: FragmentType;

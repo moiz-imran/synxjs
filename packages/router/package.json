@@ -6,6 +6,18 @@
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": ["dist/**"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./vite-plugin": {
+      "types": "./dist/node/vite-plugin.d.ts",
+      "import": "./dist/node/vite-plugin.mjs",
+      "require": "./dist/node/vite-plugin.js"
+    }
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -20,6 +32,7 @@
     "@synxjs/vdom": "workspace:*",
     "@synxjs/jsx-runtime": "workspace:*",
     "@synxjs/jsx-dev-runtime": "workspace:*",
-    "@synxjs/runtime": "workspace:*"
+    "@synxjs/runtime": "workspace:*",
+    "vite": "^5.0.10"
   }
 }

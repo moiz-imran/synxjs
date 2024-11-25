@@ -53,6 +53,11 @@ export const Routes: FunctionalComponent = () => {
 
   // Handle loaded component
   if (loadedComponent) {
+    let component = loadedComponent;
+    if (typeof loadedComponent === 'object' && 'default' in loadedComponent) {
+      component = (loadedComponent as any).default;
+    }
+
     if (route.transition) {
       const { enter, duration = 300 } = route.transition;
       return createElement(
@@ -61,11 +66,11 @@ export const Routes: FunctionalComponent = () => {
           className: enter,
           style: { transition: `all ${duration}ms` },
         },
-        createElement(loadedComponent, null),
+        createElement(component, null),
       );
     }
 
-    return createElement(loadedComponent, null);
+    return createElement(component, null);
   }
 
   // Load component if not already loading

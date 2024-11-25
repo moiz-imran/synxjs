@@ -4,4 +4,3 @@ export * from './hooks';
 export * from './components';
 export * from './link';
 export * from './context';
-export * from './fs-router';

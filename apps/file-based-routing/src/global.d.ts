@@ -1,0 +1,1 @@
+import '@synxjs/jsx-runtime';

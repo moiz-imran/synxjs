@@ -4,11 +4,16 @@ import type { Route } from './types';
 
 const { join, parse } = path;
 
-export function generateRoutesFromFileSystem(dir: string): Route[] {
+export type GeneratedRoutes = Omit<Route, 'children'> & {
+  filePath: string;
+  children?: GeneratedRoutes[];
+};
+
+export function generateRoutesFromFileSystem(dir: string): GeneratedRoutes[] {
   function processDirectory(
     currentDir: string,
     parentPath: string = '',
-  ): Route[] {
+  ): GeneratedRoutes[] {
     const entries = fs.readdirSync(currentDir);
 
     return entries
@@ -30,6 +35,7 @@ export function generateRoutesFromFileSystem(dir: string): Route[] {
             component: () => import(join(fullPath, 'index')),
             children: processDirectory(fullPath, normalizedPath),
             lazy: true,
+            filePath: fullPath,
           };
         }
 
@@ -42,6 +48,7 @@ export function generateRoutesFromFileSystem(dir: string): Route[] {
             path: parentPath ? '/' + parentPath : '/',
             component: () => import(fullPath),
             lazy: true,
+            filePath: fullPath,
           };
         }
 
@@ -55,6 +62,7 @@ export function generateRoutesFromFileSystem(dir: string): Route[] {
             path,
             component: () => import(fullPath),
             lazy: true,
+            filePath: fullPath,
           };
         }
 
@@ -67,9 +75,10 @@ export function generateRoutesFromFileSystem(dir: string): Route[] {
           path,
           component: () => import(fullPath),
           lazy: true,
+          filePath: fullPath,
         };
       })
-      .filter(Boolean) as Route[];
+      .filter(Boolean) as GeneratedRoutes[];
   }
 
   return processDirectory(dir);

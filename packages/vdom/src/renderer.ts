@@ -131,6 +131,7 @@ function renderChildren(element: HTMLElement, children: VNodeChild[]): void {
 }
 
 export function renderError(error: unknown): HTMLElement {
+  console.error(error);
   const errorContent = createElement(
     'div',
     null,
