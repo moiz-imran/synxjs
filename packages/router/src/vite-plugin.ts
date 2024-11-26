@@ -1,7 +1,7 @@
 import type { Plugin } from 'vite';
 import {
   generateRoutesFromFileSystem,
-  type GeneratedRoutes,
+  type GeneratedRoute,
 } from './fs-router';
 import { join } from 'path';
 import fs from 'fs';
@@ -24,7 +24,7 @@ export function fileSystemRouter(
 
   let root: string;
 
-  function generateRouteCode(route: GeneratedRoutes, indent = ''): string {
+  function generateRouteCode(route: GeneratedRoute, indent = ''): string {
     let componentPath =
       route.path === '/' ? 'src/pages/index.tsx' : `src/pages${route.path}.tsx`;
 

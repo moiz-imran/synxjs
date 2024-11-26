@@ -1,85 +1,115 @@
 import fs from 'fs';
 import path from 'path';
-import type { Route } from './types';
+import type { LazyRoute } from './types';
 
 const { join, parse } = path;
 
-export type GeneratedRoutes = Omit<Route, 'children'> & {
+export type GeneratedRoute = Omit<LazyRoute, 'children'> & {
   filePath: string;
-  children?: GeneratedRoutes[];
+  children?: GeneratedRoute[];
 };
 
-export function generateRoutesFromFileSystem(dir: string): GeneratedRoutes[] {
-  function processDirectory(
-    currentDir: string,
-    parentPath: string = '',
-  ): GeneratedRoutes[] {
-    const entries = fs.readdirSync(currentDir);
+export function generateRoutesFromFileSystem(dir: string): GeneratedRoute[] {
+  try {
+    return processDirectory(dir);
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
 
-    return entries
-      .map((entry) => {
-        const fullPath = join(currentDir, entry);
-        const stat = fs.statSync(fullPath);
+function processDirectory(
+  currentDir: string,
+  parentPath: string = '',
+): GeneratedRoute[] {
+  const entries = fs.readdirSync(currentDir);
+  return entries.flatMap((entry) =>
+    processEntry(currentDir, entry, parentPath),
+  );
+}
 
-        if (stat.isDirectory()) {
-          const relativePath = join(parentPath, entry);
-          const normalizedPath =
-            entry.startsWith('[') && entry.endsWith(']')
-              ? relativePath.replace(/\[(.*?)\]/g, ':$1')
-              : relativePath;
+function processEntry(
+  currentDir: string,
+  entry: string,
+  parentPath: string,
+): GeneratedRoute[] {
+  const fullPath = join(currentDir, entry);
+  const stat = fs.statSync(fullPath);
 
-          return {
-            path: normalizedPath.startsWith('/')
-              ? normalizedPath
-              : '/' + normalizedPath,
-            component: () => import(join(fullPath, 'index')),
-            children: processDirectory(fullPath, normalizedPath),
-            lazy: true,
-            filePath: fullPath,
-          };
-        }
+  if (stat.isDirectory()) {
+    return [processDirectoryEntry(fullPath, parentPath, entry)];
+  } else {
+    const fileEntry = processFileEntry(fullPath, parentPath, entry);
+    if (fileEntry) {
+      return [fileEntry];
+    }
+    return [];
+  }
+}
 
-        const { name, ext } = parse(entry);
-        if (ext !== '.tsx' && ext !== '.jsx') return null;
+function processDirectoryEntry(
+  fullPath: string,
+  parentPath: string,
+  entry: string,
+): GeneratedRoute {
+  const relativePath = join(parentPath, entry);
+  const normalizedPath = normalizedDynamicPath(relativePath);
 
-        // Handle index files
-        if (name === 'index') {
-          return {
-            path: parentPath ? '/' + parentPath : '/',
-            component: () => import(fullPath),
-            lazy: true,
-            filePath: fullPath,
-          };
-        }
+  console.log(normalizedPath);
+  return {
+    path: normalizedPath.startsWith('/')
+      ? normalizedPath
+      : '/' + normalizedPath,
+    component: loadDynamicComponent(join(fullPath, 'index')),
+    children: processDirectory(fullPath, normalizedPath),
+    lazy: true,
+    filePath: fullPath,
+  };
+}
 
-        // Handle dynamic routes
-        if (name.startsWith('[') && name.endsWith(']')) {
-          const paramName = name.slice(1, -1);
-          const path = parentPath
-            ? `/${parentPath}/:${paramName}`
-            : `/:${paramName}`;
-          return {
-            path,
-            component: () => import(fullPath),
-            lazy: true,
-            filePath: fullPath,
-          };
-        }
+function processFileEntry(
+  fullPath: string,
+  parentPath: string,
+  entry: string,
+): GeneratedRoute | null {
+  const { name, ext } = parse(entry);
 
-        // Handle regular routes
-        const routeName = name.replace(/\.[^/.]+$/, ''); // Remove file extension
-        const path = parentPath
-          ? `/${parentPath}/${routeName}`
-          : `/${routeName}`;
-        return {
-          path,
-          component: () => import(fullPath),
-          lazy: true,
-          filePath: fullPath,
-        };
-      })
-      .filter(Boolean) as GeneratedRoutes[];
+  // Skip special files and non-tsx/jsx files
+  if (name.startsWith('_') || (ext !== '.tsx' && ext !== '.jsx')) {
+    return null;
   }
 
-  return processDirectory(dir);
+  if (name === 'index') {
+    return {
+      path: parentPath ? '/' + parentPath : '/',
+      component: loadDynamicComponent(fullPath),
+      filePath: fullPath,
+      lazy: true,
+    };
+  }
+
+  const normalizedPath = normalizedDynamicPath(
+    parentPath ? `/${parentPath}/${name}` : `/${name}`,
+  );
+
+  return {
+    path: normalizedPath,
+    component: loadDynamicComponent(fullPath),
+    filePath: fullPath,
+    lazy: true,
+  };
+}
+
+function normalizedDynamicPath(path: string): string {
+  return path.replace(/\[(.*?)\]/g, (match, param) => {
+    if (param.startsWith('...')) {
+      return `:${param.slice(3)}*`;
+    } else {
+      return `:${param}`;
+    }
+  });
+}
+
+function loadDynamicComponent(filePath: string) {
+  return () => import(filePath);
 }

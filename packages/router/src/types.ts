@@ -32,7 +32,7 @@ interface RouteBase {
   transition?: RouteTransition;
 }
 
-interface LazyRoute extends RouteBase {
+export interface LazyRoute extends RouteBase {
   component:
     | (() => Promise<FunctionalComponent<any>>)
     | FunctionalComponent<any>;
@@ -41,7 +41,7 @@ interface LazyRoute extends RouteBase {
   loading?: FunctionalComponent<any>;
 }
 
-interface EagerRoute extends RouteBase {
+export interface EagerRoute extends RouteBase {
   component: FunctionalComponent<any>;
 }
 
