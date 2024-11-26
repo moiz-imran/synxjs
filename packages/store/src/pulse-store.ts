@@ -41,4 +41,22 @@ export class PulseStore<T extends object> implements Store<T> {
       callback();
     });
   }
+
+  subscribeScoped<K extends keyof T>(
+    keys: K[],
+    callback: (partialState: Pick<T, K>) => void,
+  ): CleanupFn {
+    if (keys.length === 0) {
+      return () => {}; // Return no-op cleanup for empty keys
+    }
+
+    // Create a single subscription that watches all keys
+    return this.subscribe(keys[0], () => {
+      const partialState: Pick<T, K> = {} as Pick<T, K>;
+      for (const key of keys) {
+        partialState[key] = this.getPulse(key);
+      }
+      callback(partialState);
+    });
+  }
 }
