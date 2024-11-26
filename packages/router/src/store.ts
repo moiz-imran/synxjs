@@ -53,7 +53,7 @@ export class Router extends PulseStore<RouterStore> {
     return true;
   }
 
-  private async runMiddleware(to: string, from: string): Promise<void> {
+  private async runRouterMiddleware(to: string, from: string): Promise<void> {
     // Run global middleware first
     const globalMiddleware = this.getPulse('options')?.middleware || [];
     for (const middleware of globalMiddleware) {
@@ -99,14 +99,14 @@ export class Router extends PulseStore<RouterStore> {
     if (!canProceed) return;
 
     // Run middleware
-    await this.runMiddleware(resolvedPath, currentPath);
+    await this.runRouterMiddleware(resolvedPath, currentPath);
 
     // Parse search params
     const url = new URL(resolvedPath, window.location.origin);
     const search = Object.fromEntries(url.searchParams);
 
     window.history.pushState(null, '', resolvedPath);
-    this.setPulse('state', {
+    await this.setPulse('state', {
       currentRoute: resolvedPath,
       params: {},
       search,

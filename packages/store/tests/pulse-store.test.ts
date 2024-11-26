@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PulseStore } from '../src';
+import { Middleware, MiddlewareContext } from '../src/types';
 
 interface TestState {
   count: number;
@@ -27,23 +28,23 @@ describe('PulseStore', () => {
       expect(store.getPulse('nested')).toEqual({ value: 'test' });
     });
 
-    it('should set individual pulse values', () => {
+    it('should set individual pulse values', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'test' },
       });
 
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(store.getPulse('count')).toBe(1);
     });
 
-    it('should set multiple pulses', () => {
+    it('should set multiple pulses', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'old' },
       });
 
-      store.setPulses({
+      await store.setPulses({
         count: 1,
         nested: { value: 'new' },
       });
@@ -56,7 +57,7 @@ describe('PulseStore', () => {
   });
 
   describe('reactivity', () => {
-    it('should trigger subscribers when pulse changes', () => {
+    it('should trigger subscribers when pulse changes', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'test' },
@@ -65,12 +66,12 @@ describe('PulseStore', () => {
       const callback = vi.fn();
       store.subscribe('count', callback);
 
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
 
       expect(callback).toHaveBeenCalled();
     });
 
-    it('should handle nested pulse changes', () => {
+    it('should handle nested pulse changes', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'old' },
@@ -79,7 +80,7 @@ describe('PulseStore', () => {
       const callback = vi.fn();
       store.subscribe('nested', callback);
 
-      store.setPulse('nested', { value: 'new' });
+      await store.setPulse('nested', { value: 'new' });
       expect(callback).toHaveBeenCalled();
     });
 
@@ -99,7 +100,7 @@ describe('PulseStore', () => {
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle multiple subscriptions to same pulse', () => {
+    it('should handle multiple subscriptions to same pulse', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'test' },
@@ -116,7 +117,7 @@ describe('PulseStore', () => {
       callback2.mockClear();
 
       // First update - both callbacks should fire
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(callback1).toHaveBeenCalledTimes(1);
       expect(callback2).toHaveBeenCalledTimes(1);
 
@@ -126,7 +127,7 @@ describe('PulseStore', () => {
 
       // After cleanup1, only callback2 should fire
       cleanup1();
-      store.setPulse('count', 2);
+      await store.setPulse('count', 2);
       expect(callback1).not.toHaveBeenCalled();
       expect(callback2).toHaveBeenCalledTimes(1);
     });
@@ -176,7 +177,7 @@ describe('PulseStore', () => {
       expect(callback).toHaveBeenCalled();
     });
 
-    it('should handle reset with active subscribers', () => {
+    it('should handle reset with active subscribers', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'test' },
@@ -186,8 +187,8 @@ describe('PulseStore', () => {
       store.subscribe('count', callback);
       callback.mockClear();
 
-      store.setPulse('count', 1);
-      store.reset();
+      await store.setPulse('count', 1);
+      await store.reset();
 
       expect(callback).toHaveBeenCalledTimes(2); // Once for setPulse, once for reset
       expect(store.getPulses()).toEqual({
@@ -198,7 +199,7 @@ describe('PulseStore', () => {
   });
 
   describe('nested objects', () => {
-    it('should handle deep nested updates', () => {
+    it('should handle deep nested updates', async () => {
       const store = new PulseStore({
         user: {
           profile: {
@@ -213,7 +214,7 @@ describe('PulseStore', () => {
       store.subscribe('user', callback);
       callback.mockClear();
 
-      store.setPulse('user', {
+      await store.setPulse('user', {
         profile: {
           settings: {
             theme: 'light',
@@ -231,7 +232,7 @@ describe('PulseStore', () => {
       });
     });
 
-    it('should handle partial nested updates', () => {
+    it('should handle partial nested updates', async () => {
       const store = new PulseStore({
         config: {
           features: {
@@ -246,7 +247,7 @@ describe('PulseStore', () => {
       store.subscribe('config', callback);
       callback.mockClear();
 
-      store.setPulse('config', {
+      await store.setPulse('config', {
         ...store.getPulse('config'),
         features: {
           ...store.getPulse('config').features,
@@ -264,7 +265,7 @@ describe('PulseStore', () => {
       });
     });
 
-    it('should handle arrays in nested objects', () => {
+    it('should handle arrays in nested objects', async () => {
       const store = new PulseStore({
         lists: {
           todos: [{ id: 1, text: 'Test', done: false }],
@@ -275,7 +276,7 @@ describe('PulseStore', () => {
       store.subscribe('lists', callback);
       callback.mockClear();
 
-      store.setPulse('lists', {
+      await store.setPulse('lists', {
         todos: [
           { id: 1, text: 'Test', done: true },
           { id: 2, text: 'New', done: false },
@@ -287,7 +288,7 @@ describe('PulseStore', () => {
       expect(store.getPulse('lists').todos[0].done).toBe(true);
     });
 
-    it('should handle null values in nested objects', () => {
+    it('should handle null values in nested objects', async () => {
       const store = new PulseStore({
         data: {
           optional: null as { value: string } | null,
@@ -298,19 +299,19 @@ describe('PulseStore', () => {
       store.subscribe('data', callback);
       callback.mockClear();
 
-      store.setPulse('data', {
+      await store.setPulse('data', {
         optional: { value: 'test' },
       });
       expect(callback).toHaveBeenCalledTimes(1);
 
       callback.mockClear();
-      store.setPulse('data', {
+      await store.setPulse('data', {
         optional: null,
       });
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle nested object cleanup', () => {
+    it('should handle nested object cleanup', async () => {
       const store = new PulseStore({
         settings: {
           theme: {
@@ -326,7 +327,7 @@ describe('PulseStore', () => {
       const cleanup = store.subscribe('settings', callback);
       callback.mockClear();
 
-      store.setPulse('settings', {
+      await store.setPulse('settings', {
         theme: {
           mode: 'light',
           custom: {
@@ -338,7 +339,7 @@ describe('PulseStore', () => {
 
       cleanup();
 
-      store.setPulse('settings', {
+      await store.setPulse('settings', {
         theme: {
           mode: 'system',
           custom: {
@@ -349,7 +350,7 @@ describe('PulseStore', () => {
       expect(callback).toHaveBeenCalledTimes(1); // Should not increase
     });
 
-    it('should handle multiple subscribers to different nesting levels', () => {
+    it('should handle multiple subscribers to different nesting levels', async () => {
       const store = new PulseStore({
         app: {
           ui: {
@@ -369,7 +370,7 @@ describe('PulseStore', () => {
       rootCallback.mockClear();
       nestedCallback.mockClear();
 
-      store.setPulse('app', {
+      await store.setPulse('app', {
         ui: {
           sidebar: {
             width: 200,
@@ -382,7 +383,7 @@ describe('PulseStore', () => {
       expect(nestedCallback).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle replacing entire nested structures', () => {
+    it('should handle replacing entire nested structures', async () => {
       const store = new PulseStore({
         state: {
           nested: {
@@ -398,7 +399,7 @@ describe('PulseStore', () => {
       store.subscribe('state', callback);
       callback.mockClear();
 
-      store.setPulse('state', {
+      await store.setPulse('state', {
         nested: {
           deep: {
             value: 2,
@@ -420,7 +421,7 @@ describe('PulseStore', () => {
   });
 
   describe('subscribeScoped', () => {
-    it('should handle multiple key subscriptions', () => {
+    it('should handle multiple key subscriptions', async () => {
       const store = new PulseStore({
         count: 0,
         name: 'test',
@@ -431,7 +432,7 @@ describe('PulseStore', () => {
       store.subscribeScoped(['count', 'name'], callback);
 
       // Update one of the subscribed keys
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(callback).toHaveBeenCalledWith({
         count: 1,
         name: 'test',
@@ -439,7 +440,7 @@ describe('PulseStore', () => {
 
       // Update another subscribed key
       callback.mockClear();
-      store.setPulse('name', 'updated');
+      await store.setPulse('name', 'updated');
       expect(callback).toHaveBeenCalledWith({
         count: 1,
         name: 'updated',
@@ -447,11 +448,11 @@ describe('PulseStore', () => {
 
       // Update non-subscribed key should not trigger callback
       callback.mockClear();
-      store.setPulse('active', true);
+      await store.setPulse('active', true);
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle cleanup of scoped subscriptions', () => {
+    it('should handle cleanup of scoped subscriptions', async () => {
       const store = new PulseStore({
         count: 0,
         name: 'test',
@@ -464,12 +465,12 @@ describe('PulseStore', () => {
       cleanup();
 
       // Updates after cleanup should not trigger callback
-      store.setPulse('count', 1);
-      store.setPulse('name', 'updated');
+      await store.setPulse('count', 1);
+      await store.setPulse('name', 'updated');
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle nested object updates in scoped subscriptions', () => {
+    it('should handle nested object updates in scoped subscriptions', async () => {
       const store = new PulseStore({
         user: {
           profile: {
@@ -486,7 +487,7 @@ describe('PulseStore', () => {
       store.subscribeScoped(['user', 'settings'], callback);
 
       // Update nested property
-      store.setPulse('user', {
+      await store.setPulse('user', {
         profile: {
           name: 'Jane',
           age: 26,
@@ -507,7 +508,7 @@ describe('PulseStore', () => {
 
       // Update another subscribed key
       callback.mockClear();
-      store.setPulse('settings', { theme: 'light' });
+      await store.setPulse('settings', { theme: 'light' });
       expect(callback).toHaveBeenCalledWith({
         user: {
           profile: {
@@ -521,7 +522,7 @@ describe('PulseStore', () => {
       });
     });
 
-    it('should handle multiple scoped subscriptions to the same keys', () => {
+    it('should handle multiple scoped subscriptions to the same keys', async () => {
       const store = new PulseStore({
         count: 0,
         name: 'test',
@@ -534,7 +535,7 @@ describe('PulseStore', () => {
       const cleanup2 = store.subscribeScoped(['count', 'name'], callback2);
 
       // Update should trigger both callbacks
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(callback1).toHaveBeenCalledWith({
         count: 1,
         name: 'test',
@@ -550,7 +551,7 @@ describe('PulseStore', () => {
       cleanup1();
 
       // Update should only trigger second callback
-      store.setPulse('name', 'updated');
+      await store.setPulse('name', 'updated');
       expect(callback1).not.toHaveBeenCalled();
       expect(callback2).toHaveBeenCalledWith({
         count: 1,
@@ -558,7 +559,7 @@ describe('PulseStore', () => {
       });
     });
 
-    it('should handle empty key array', () => {
+    it('should handle empty key array', async () => {
       const store = new PulseStore({
         count: 0,
       });
@@ -566,11 +567,11 @@ describe('PulseStore', () => {
       const callback = vi.fn();
       const cleanup = store.subscribeScoped([], callback);
 
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should handle subscription to non-existent keys', () => {
+    it('should handle subscription to non-existent keys', async () => {
       const store = new PulseStore({
         count: 0,
       });
@@ -584,11 +585,11 @@ describe('PulseStore', () => {
       // Clear initial subscription call
       callback.mockClear();
 
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       expect(callback).not.toHaveBeenCalled();
     });
 
-    it('should maintain correct state after multiple updates', () => {
+    it('should maintain correct state after multiple updates', async () => {
       const store = new PulseStore({
         count: 0,
         name: 'test',
@@ -603,9 +604,9 @@ describe('PulseStore', () => {
       // Clear initial subscription call
       states.length = 0;
 
-      store.setPulse('count', 1);
-      store.setPulse('name', 'updated');
-      store.setPulse('count', 2);
+      await store.setPulse('count', 1);
+      await store.setPulse('name', 'updated');
+      await store.setPulse('count', 2);
 
       expect(states).toEqual([
         { count: 1, name: 'test' },
@@ -614,7 +615,7 @@ describe('PulseStore', () => {
       ]);
     });
 
-    it('should handle rapid consecutive updates', () => {
+    it('should handle rapid consecutive updates', async () => {
       const store = new PulseStore({
         count: 0,
         name: 'test',
@@ -628,9 +629,9 @@ describe('PulseStore', () => {
 
       // Perform multiple rapid updates
       store.setPulse('count', 1);
-      store.setPulse('count', 2);
-      store.setPulse('name', 'updated');
-      store.setPulse('count', 3);
+      await store.setPulse('count', 2);
+      await store.setPulse('name', 'updated');
+      await store.setPulse('count', 3);
 
       expect(callback).toHaveBeenCalledTimes(4);
       expect(callback).toHaveBeenLastCalledWith({
@@ -662,6 +663,102 @@ describe('PulseStore', () => {
           fnString === '() => {\n      }' ||
           fnString === 'function () {\n      }',
       ).toBe(true);
+    });
+  });
+
+  // packages/store/tests/pulse-store.test.ts
+
+  describe('middleware', () => {
+    it('should handle middleware in correct order', async () => {
+      const order: string[] = [];
+      const middleware1: Middleware<TestState> = {
+        onBeforeUpdate: async () => {
+          order.push('before1');
+        },
+        onAfterUpdate: async () => {
+          order.push('after1');
+        },
+      };
+      const middleware2: Middleware<TestState> = {
+        onBeforeUpdate: async () => {
+          order.push('before2');
+        },
+        onAfterUpdate: async () => {
+          order.push('after2');
+        },
+      };
+
+      const store = new PulseStore<TestState>(
+        { count: 0, nested: { value: 'test' } },
+        [middleware1, middleware2],
+      );
+
+      await store.setPulse('count', 1);
+
+      expect(order).toEqual(['before1', 'before2', 'after1', 'after2']);
+    });
+
+    it('should allow adding and removing middleware', async () => {
+      const store = new PulseStore<TestState>({
+        count: 0,
+        nested: { value: 'test' },
+      });
+
+      const calls: string[] = [];
+      const middleware: Middleware<TestState> = {
+        onBeforeUpdate: async () => {
+          calls.push('before');
+        },
+      };
+
+      store.addMiddleware(middleware);
+      await store.setPulse('count', 1);
+      expect(calls).toEqual(['before']);
+
+      calls.length = 0;
+      store.removeMiddleware(middleware);
+      await store.setPulse('count', 2);
+      expect(calls).toEqual([]);
+    });
+
+    it('should provide correct context to middleware', async () => {
+      let capturedContext: MiddlewareContext<TestState> | null = null;
+      const middleware: Middleware<TestState> = {
+        onBeforeUpdate: async (context) => {
+          capturedContext = context;
+        },
+      };
+
+      const store = new PulseStore<TestState>(
+        { count: 0, nested: { value: 'test' } },
+        [middleware],
+      );
+
+      await store.setPulse('count', 1);
+
+      expect(capturedContext).toBeTruthy();
+      expect(capturedContext!.key).toBe('count');
+      expect(capturedContext!.previousValue).toBe(0);
+      expect(capturedContext!.value).toBe(1);
+      expect(capturedContext!.store).toBe(store);
+      expect(typeof capturedContext!.timestamp).toBe('number');
+    });
+
+    it('should handle middleware during reset', async () => {
+      const calls: string[] = [];
+      const middleware: Middleware<TestState> = {
+        onReset: async () => {
+          calls.push('reset');
+        },
+      };
+
+      const store = new PulseStore<TestState>(
+        { count: 0, nested: { value: 'test' } },
+        [middleware],
+      );
+
+      await store.reset();
+      expect(calls).toEqual(['reset']);
     });
   });
 });

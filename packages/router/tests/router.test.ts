@@ -145,6 +145,8 @@ describe('Router', () => {
         writable: true,
       });
       window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       effects.forEach((fn) => fn());
       expect(effect).toHaveBeenCalledWith('/');
     });
@@ -352,7 +354,7 @@ describe('Router', () => {
       // Update Router's state with params
       router.navigate('/users/123/posts/456');
       await new Promise((resolve) => setTimeout(resolve, 0));
-      router.setPulse('state', {
+      await router.setPulse('state', {
         currentRoute: '/users/123/posts/456',
         params: { userId: '123', postId: '456' },
         search: {},
@@ -400,7 +402,7 @@ describe('Router', () => {
   });
 
   describe('history management', () => {
-    it('should handle browser back/forward with state', () => {
+    it('should handle browser back/forward with state', async () => {
       const routes = [{ path: '/', component: () => null as unknown as VNode }];
       const router = new Router(routes);
       const effect = vi.fn();
@@ -426,7 +428,7 @@ describe('Router', () => {
       );
 
       // Update Router's state to match history
-      router.setPulse('state', {
+      await router.setPulse('state', {
         currentRoute: '/page1',
         params: {},
         search: {},
