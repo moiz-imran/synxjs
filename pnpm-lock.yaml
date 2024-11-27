@@ -171,6 +171,46 @@ importers:
         specifier: ^5.0.10
         version: 5.4.11
 
+  apps/pulse-store:
+    dependencies:
+      '@synxjs/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@synxjs/hooks':
+        specifier: workspace:*
+        version: link:../../packages/hooks
+      '@synxjs/jsx-dev-runtime':
+        specifier: workspace:*
+        version: link:../../packages/jsx-dev-runtime
+      '@synxjs/jsx-runtime':
+        specifier: workspace:*
+        version: link:../../packages/jsx-runtime
+      '@synxjs/router':
+        specifier: workspace:*
+        version: link:../../packages/router
+      '@synxjs/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@synxjs/store':
+        specifier: workspace:*
+        version: link:../../packages/store
+      '@synxjs/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: ^4.2.1
+        version: 4.3.3(vite@5.4.11)
+      tailwindcss:
+        specifier: ^3.4.1
+        version: 3.4.14
+      typescript:
+        specifier: ^5.3.3
+        version: 5.6.3
+      vite:
+        specifier: ^5.0.10
+        version: 5.4.11
+
   packages/core:
     dependencies:
       '@synxjs/hooks':
