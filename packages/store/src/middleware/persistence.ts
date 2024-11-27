@@ -1,4 +1,4 @@
-import { Middleware } from '../types';
+import { Middleware } from '@synxjs/types';
 
 export function createPersistenceMiddleware<T extends object>(options: {
   key: string;

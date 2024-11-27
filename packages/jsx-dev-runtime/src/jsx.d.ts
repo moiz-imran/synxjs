@@ -46,6 +46,12 @@ namespace JSX {
     article: HTMLAttributes<HTMLElement>;
     pre: HTMLAttributes<HTMLPreElement>;
     code: HTMLAttributes<HTMLElement>;
+    input: HTMLAttributes<HTMLInputElement>;
+    textarea: HTMLAttributes<HTMLTextAreaElement>;
+    select: HTMLAttributes<HTMLSelectElement>;
+    option: HTMLAttributes<HTMLOptionElement>;
+    label: HTMLAttributes<HTMLLabelElement>;
+    form: HTMLAttributes<HTMLFormElement>;
   }
 
   const Fragment: FragmentType;

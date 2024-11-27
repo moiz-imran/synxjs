@@ -1,6 +1,12 @@
 import { reactive, effect } from '@synxjs/reactivity';
-import type { Store, Effect, CleanupFn, DeepPartial } from '@synxjs/types';
-import type { Middleware, MiddlewareContext } from './types';
+import type {
+  Store,
+  Effect,
+  CleanupFn,
+  DeepPartial,
+  Middleware,
+  MiddlewareContext,
+} from '@synxjs/types';
 
 export class PulseStore<T extends object> implements Store<T> {
   private pulses: T;

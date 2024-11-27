@@ -1,4 +1,4 @@
-import type { Middleware } from '../types';
+import type { Middleware } from '@synxjs/types';
 
 export function createLoggerMiddleware<T extends object>(
   options: {
