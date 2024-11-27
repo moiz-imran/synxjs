@@ -10,7 +10,7 @@ export const TodoList: FunctionalComponent = () => {
   const filteredTodos = todos.filter((todo) => {
     if (filter === 'active') return !todo.completed;
     if (filter === 'completed') return todo.completed;
-    return true;
+    return user.preferences.showCompleted ? true : !todo.completed;
   });
 
   const addTodo = (text: string) => {
@@ -48,29 +48,34 @@ export const TodoList: FunctionalComponent = () => {
         <input
           type="text"
           name="todo"
-          className="w-full px-4 py-2 border rounded"
+          className="w-full px-4 py-2 border rounded dark:bg-gray-700"
           placeholder="Add new todo..."
         />
       </form>
 
       <ul className="space-y-2">
-        {filteredTodos.map((todo) => (
-          <li
-            key={todo.id}
-            className="flex items-center space-x-2 p-2 bg-white rounded shadow"
-          >
-            <input
-              type="checkbox"
-              checked={todo.completed}
-              onChange={() => toggleTodo(todo.id)}
-            />
-            <span
-              className={todo.completed ? 'line-through text-gray-500' : ''}
+        {filteredTodos
+          .sort((a, b) => {
+            if (user.preferences.sortBy === 'date') return a.id - b.id;
+            return a.text.localeCompare(b.text);
+          })
+          .map((todo) => (
+            <li
+              key={todo.id}
+              className="flex items-center space-x-2 p-2 bg-white rounded shadow dark:bg-gray-700"
             >
-              {todo.text}
-            </span>
-          </li>
-        ))}
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo.id)}
+              />
+              <span
+                className={todo.completed ? 'line-through text-gray-500' : ''}
+              >
+                {todo.text}
+              </span>
+            </li>
+          ))}
       </ul>
     </div>
   );

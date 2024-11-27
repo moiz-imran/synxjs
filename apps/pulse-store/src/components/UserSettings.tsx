@@ -19,7 +19,7 @@ export const UserSettings: FunctionalComponent = () => {
             onChange={(e: InputEvent) =>
               setUser({ ...user, name: (e.target as HTMLInputElement).value })
             }
-            className="ml-2 px-2 py-1 border rounded"
+            className="ml-2 px-2 py-1 border rounded dark:bg-gray-700"
           />
         </label>
 
@@ -37,7 +37,7 @@ export const UserSettings: FunctionalComponent = () => {
                 },
               })
             }
-            className="ml-2"
+            className="ml-2 dark:bg-gray-700"
           />
         </label>
 
@@ -56,7 +56,7 @@ export const UserSettings: FunctionalComponent = () => {
                 },
               })
             }
-            className="ml-2 px-2 py-1 border rounded"
+            className="ml-2 px-2 py-1 border rounded dark:bg-gray-700"
           >
             <option value="date">Date</option>
             <option value="name">Name</option>
@@ -72,7 +72,7 @@ export const UserSettings: FunctionalComponent = () => {
                 (e.target as HTMLSelectElement).value as 'light' | 'dark',
               )
             }
-            className="ml-2 px-2 py-1 border rounded"
+            className="ml-2 px-2 py-1 border rounded dark:bg-gray-700"
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>

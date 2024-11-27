@@ -1,9 +1,9 @@
 // Mocks need to be at the top
-vi.mock("@synxjs/runtime", () => ({
+vi.mock('@synxjs/runtime', () => ({
   getCurrentComponent: vi.fn(),
 }));
 
-vi.mock("@synxjs/vdom", () => ({
+vi.mock('@synxjs/vdom', () => ({
   scheduleUpdate: vi.fn(),
 }));
 
@@ -11,40 +11,49 @@ vi.mock("@synxjs/vdom", () => ({
 const effectsMap = new Map<Function, Function>();
 
 // Mock the reactivity system with cleanup handling
-vi.mock("@synxjs/reactivity", () => ({
-  effect: vi.fn((fn) => {
-    // Store the effect function
-    const effectFn = () => {
-      const cleanup = fn();
-      if (cleanup) {
-        effectsMap.set(fn, cleanup);
-      }
-      return cleanup;
-    };
+vi.mock('@synxjs/reactivity', async (importOriginal) => {
+  const reactivity =
+    await importOriginal<typeof import('@synxjs/reactivity')>();
+  return {
+    ...reactivity,
+    effect: vi.fn((fn) => {
+      // Store the effect function
+      const effectFn = () => {
+        const cleanup = fn();
+        if (cleanup) {
+          effectsMap.set(fn, cleanup);
+        }
+        return cleanup;
+      };
 
-    // Run it immediately
-    effectFn();
+      // Run it immediately
+      effectFn();
 
-    // Return cleanup function
-    return () => {
-      const cleanup = effectsMap.get(fn);
-      if (cleanup) {
-        cleanup();
-        effectsMap.delete(fn);
-      }
-    };
-  }),
-}));
+      // Return cleanup function
+      return () => {
+        const cleanup = effectsMap.get(fn);
+        if (cleanup) {
+          cleanup();
+          effectsMap.delete(fn);
+        }
+      };
+    }),
+  };
+});
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { usePulseState, usePulseEffect } from "../src";
-import { PulseStore } from "@synxjs/store";
-import type { FunctionalComponentInstance, PulseHook, EffectHook } from "@synxjs/types";
-import { getCurrentComponent } from "@synxjs/runtime";
-import { scheduleUpdate } from "@synxjs/vdom";
-import { effect as reactiveEffect } from "@synxjs/reactivity";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { usePulseState, usePulseEffect } from '../src';
+import { PulseStore } from '@synxjs/store';
+import type {
+  FunctionalComponentInstance,
+  PulseHook,
+  EffectHook,
+} from '@synxjs/types';
+import { getCurrentComponent } from '@synxjs/runtime';
+import { scheduleUpdate } from '@synxjs/vdom';
+import { effect as reactiveEffect } from '@synxjs/reactivity';
 
-describe("Pulse Hooks", () => {
+describe('Pulse Hooks', () => {
   const mockComponent: FunctionalComponentInstance = {
     hooks: [],
     currentHook: 0,
@@ -55,56 +64,59 @@ describe("Pulse Hooks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     mockComponent.hooks = [];
     mockComponent.currentHook = 0;
     vi.mocked(getCurrentComponent).mockReturnValue(mockComponent);
     effectsMap.clear(); // Clear effects map
+    // Wait for any pending effects
+    vi.runAllTimers();
   });
 
-  describe("usePulseState", () => {
-    it("should initialize with store value", () => {
+  describe('usePulseState', () => {
+    it('should initialize with store value', () => {
       const store = new PulseStore({ count: 0 });
-      const [value] = usePulseState("count", store);
+      const [value] = usePulseState('count', store);
 
       expect(value).toBe(0);
       expect(mockComponent.hooks[0]).toEqual(
         expect.objectContaining({
-          type: "pulse",
+          type: 'pulse',
           value: 0,
-        })
+        }),
       );
     });
 
-    it("should update value when store changes", async () => {
+    it('should update value when store changes', async () => {
       const store = new PulseStore({ count: 0 });
-      const [, setValue] = usePulseState("count", store);
+      const [, setValue] = usePulseState('count', store);
 
       setValue(1);
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(store.getPulse("count")).toBe(1);
+      await vi.runAllTimersAsync();
+      expect(store.getPulse('count')).toBe(1);
     });
 
-    it("should handle functional updates", async () => {
+    it('should handle functional updates', async () => {
       const store = new PulseStore({ count: 0 });
-      const [, setValue] = usePulseState("count", store);
+      const [, setValue] = usePulseState('count', store);
 
-      setValue(prev => prev + 1);
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(store.getPulse("count")).toBe(1);
+      setValue((prev) => prev + 1);
+      await vi.runAllTimersAsync();
+      expect(store.getPulse('count')).toBe(1);
     });
 
-    it("should schedule component update when value changes", async () => {
+    it('should schedule component update when value changes', async () => {
       const store = new PulseStore({ count: 0 });
-      const [, setValue] = usePulseState("count", store);
+      const [, setValue] = usePulseState('count', store);
 
       setValue(1);
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
       expect(scheduleUpdate).toHaveBeenCalledWith(mockComponent);
     });
 
-    it("should cleanup subscription on unmount", () => {
+    it('should cleanup subscription on unmount', () => {
       const store = new PulseStore({ count: 0 });
-      usePulseState("count", store);
+      usePulseState('count', store);
 
       const hook = mockComponent.hooks[0] as PulseHook<number>;
       const unsubscribeSpy = vi.fn();
@@ -119,25 +131,25 @@ describe("Pulse Hooks", () => {
     });
   });
 
-  describe("usePulseEffect", () => {
-    it("should run effect when pulse changes", async () => {
+  describe('usePulseEffect', () => {
+    it('should run effect when pulse changes', async () => {
       const store = new PulseStore({ count: 0 });
       const effect = vi.fn();
 
       // Clear initial call
       usePulseEffect(() => {
-        effect(store.getPulse("count"));
+        effect(store.getPulse('count'));
       });
       effect.mockClear();
 
-      await store.setPulse("count", 1);
+      await store.setPulse('count', 1);
       // Simulate effect running
       vi.mocked(reactiveEffect).mock.calls[0][0]();
 
       expect(effect).toHaveBeenCalledWith(1);
     });
 
-    it("should cleanup previous effect", () => {
+    it('should cleanup previous effect', () => {
       const store = new PulseStore({ count: 0 });
       const cleanup = vi.fn();
       const effect = vi.fn(() => cleanup);
@@ -146,7 +158,7 @@ describe("Pulse Hooks", () => {
       usePulseEffect(effect);
 
       // Trigger a store update to cause effect cleanup
-      store.setPulse("count", 1);
+      store.setPulse('count', 1);
 
       // Get the cleanup function returned by reactiveEffect
       const cleanupFn = vi.mocked(reactiveEffect).mock.results[0].value;
@@ -157,7 +169,7 @@ describe("Pulse Hooks", () => {
       expect(cleanup).toHaveBeenCalled();
     });
 
-    it("should cleanup previous effect (alternative)", () => {
+    it('should cleanup previous effect (alternative)', () => {
       const store = new PulseStore({ count: 0 });
       const cleanup = vi.fn();
 
@@ -175,45 +187,45 @@ describe("Pulse Hooks", () => {
       expect(cleanup).toHaveBeenCalled();
     });
 
-    it("should handle nested pulse dependencies", async () => {
+    it('should handle nested pulse dependencies', async () => {
       const store = new PulseStore({
-        nested: { value: "initial" }
+        nested: { value: 'initial' },
       });
       const effect = vi.fn();
 
       usePulseEffect(() => {
-        effect(store.getPulse("nested").value);
+        effect(store.getPulse('nested').value);
       });
       effect.mockClear();
 
-      await store.setPulse("nested", { value: "updated" });
+      await store.setPulse('nested', { value: 'updated' });
       // Simulate effect running
       vi.mocked(reactiveEffect).mock.calls[0][0]();
 
-      expect(effect).toHaveBeenCalledWith("updated");
+      expect(effect).toHaveBeenCalledWith('updated');
     });
 
-    it("should handle multiple pulse dependencies", async () => {
+    it('should handle multiple pulse dependencies', async () => {
       const store = new PulseStore({
         count1: 0,
-        count2: 0
+        count2: 0,
       });
       const effect = vi.fn();
 
       usePulseEffect(() => {
-        effect(store.getPulse("count1") + store.getPulse("count2"));
+        effect(store.getPulse('count1') + store.getPulse('count2'));
       });
       effect.mockClear();
 
-      await store.setPulse("count1", 1);
-      await store.setPulse("count2", 2);
+      await store.setPulse('count1', 1);
+      await store.setPulse('count2', 2);
       // Simulate effect running
       vi.mocked(reactiveEffect).mock.calls[0][0]();
 
       expect(effect).toHaveBeenCalledWith(3);
     });
 
-    it("should handle cleanup of previous effect", () => {
+    it('should handle cleanup of previous effect', () => {
       const store = new PulseStore({ count: 0 });
       const cleanup = vi.fn();
       const effect = vi.fn(() => cleanup);
@@ -236,139 +248,137 @@ describe("Pulse Hooks", () => {
     });
   });
 
-  describe("usePulseState with nested objects", () => {
-    it("should handle deep nested updates", async () => {
+  describe('usePulseState with nested objects', () => {
+    it('should handle deep nested updates', async () => {
       const store = new PulseStore({
         user: {
           profile: {
             settings: {
-              theme: "dark"
-            }
-          }
-        }
+              theme: 'dark',
+            },
+          },
+        },
       });
 
-      const [value, setValue] = usePulseState("user", store);
+      const [value, setValue] = usePulseState('user', store);
       expect(value).toEqual({
         profile: {
           settings: {
-            theme: "dark"
-          }
-        }
+            theme: 'dark',
+          },
+        },
       });
 
       setValue({
         profile: {
           settings: {
-            theme: "light"
-          }
-        }
+            theme: 'light',
+          },
+        },
       });
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
 
       expect(scheduleUpdate).toHaveBeenCalledWith(mockComponent);
-      expect(store.getPulse("user")).toEqual({
+      expect(store.getPulse('user')).toEqual({
         profile: {
           settings: {
-            theme: "light"
-          }
-        }
+            theme: 'light',
+          },
+        },
       });
     });
 
-    it("should handle partial nested updates", async () => {
+    it('should handle partial nested updates', async () => {
       const store = new PulseStore({
         config: {
           features: {
             a: true,
-            b: false
+            b: false,
           },
-          version: "1.0"
-        }
+          version: '1.0',
+        },
       });
 
-      const [value, setValue] = usePulseState("config", store);
+      const [value, setValue] = usePulseState('config', store);
 
-      setValue(prev => ({
+      setValue((prev) => ({
         ...prev,
         features: {
           ...prev.features,
-          b: true
-        }
+          b: true,
+        },
       }));
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
 
       expect(scheduleUpdate).toHaveBeenCalledWith(mockComponent);
-      expect(store.getPulse("config")).toEqual({
+      expect(store.getPulse('config')).toEqual({
         features: {
           a: true,
-          b: true
+          b: true,
         },
-        version: "1.0"
+        version: '1.0',
       });
     });
 
-    it("should handle arrays in nested objects", async () => {
+    it('should handle arrays in nested objects', async () => {
       const store = new PulseStore({
         lists: {
-          todos: [
-            { id: 1, text: "Test", done: false }
-          ]
-        }
+          todos: [{ id: 1, text: 'Test', done: false }],
+        },
       });
 
-      const [value, setValue] = usePulseState("lists", store);
+      const [value, setValue] = usePulseState('lists', store);
 
       setValue({
         todos: [
-          { id: 1, text: "Test", done: true },
-          { id: 2, text: "New", done: false }
-        ]
+          { id: 1, text: 'Test', done: true },
+          { id: 2, text: 'New', done: false },
+        ],
       });
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
 
       expect(scheduleUpdate).toHaveBeenCalledWith(mockComponent);
-      expect(store.getPulse("lists").todos).toHaveLength(2);
-      expect(store.getPulse("lists").todos[0].done).toBe(true);
+      expect(store.getPulse('lists').todos).toHaveLength(2);
+      expect(store.getPulse('lists').todos[0].done).toBe(true);
     });
 
-    it("should handle null values in nested objects", async () => {
+    it('should handle null values in nested objects', async () => {
       const store = new PulseStore({
         data: {
-          optional: null as { value: string } | null
-        }
+          optional: null as { value: string } | null,
+        },
       });
 
-      const [value, setValue] = usePulseState("data", store);
+      const [value, setValue] = usePulseState('data', store);
 
       setValue({
-        optional: { value: "test" }
+        optional: { value: 'test' },
       });
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
       expect(scheduleUpdate).toHaveBeenCalledWith(mockComponent);
 
       setValue({
-        optional: null
+        optional: null,
       });
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await vi.runAllTimersAsync();
       expect(scheduleUpdate).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe("usePulseEffect with nested objects", () => {
-    it("should track nested object mutations", async () => {
+  describe('usePulseEffect with nested objects', () => {
+    it('should track nested object mutations', async () => {
       const store = new PulseStore({
         user: {
           profile: {
-            name: "John",
+            name: 'John',
             settings: {
-              theme: "dark"
-            }
-          }
-        }
+              theme: 'dark',
+            },
+          },
+        },
       });
 
       const nameEffect = vi.fn();
@@ -379,12 +389,13 @@ describe("Pulse Hooks", () => {
       let themeEffectFn: Function | undefined;
 
       usePulseEffect(() => {
-        nameEffectFn = () => nameEffect(store.getPulse("user").profile.name);
+        nameEffectFn = () => nameEffect(store.getPulse('user').profile.name);
         nameEffectFn();
       });
 
       usePulseEffect(() => {
-        themeEffectFn = () => themeEffect(store.getPulse("user").profile.settings.theme);
+        themeEffectFn = () =>
+          themeEffect(store.getPulse('user').profile.settings.theme);
         themeEffectFn();
       });
 
@@ -393,31 +404,31 @@ describe("Pulse Hooks", () => {
       themeEffect.mockClear();
 
       // Update deep property
-      await store.setPulse("user", {
-        ...store.getPulse("user"),
+      await store.setPulse('user', {
+        ...store.getPulse('user'),
         profile: {
-          ...store.getPulse("user").profile,
+          ...store.getPulse('user').profile,
           settings: {
-            theme: "light"
-          }
-        }
+            theme: 'light',
+          },
+        },
       });
 
       // Manually trigger effects to simulate reactivity
       themeEffectFn?.();
 
-      expect(themeEffect).toHaveBeenCalledWith("light");
+      expect(themeEffect).toHaveBeenCalledWith('light');
       expect(nameEffect).not.toHaveBeenCalled();
     });
 
-    it("should handle cleanup with nested dependencies", async () => {
+    it('should handle cleanup with nested dependencies', async () => {
       const store = new PulseStore({
         settings: {
           display: {
-            color: "red",
-            size: "large"
-          }
-        }
+            color: 'red',
+            size: 'large',
+          },
+        },
       });
 
       const effect = vi.fn();
@@ -430,7 +441,7 @@ describe("Pulse Hooks", () => {
         effectFn = () => {
           // Call previous cleanup if it exists
           cleanup();
-          effect(store.getPulse("settings").display);
+          effect(store.getPulse('settings').display);
           return cleanup;
         };
         effectFn();
@@ -438,7 +449,7 @@ describe("Pulse Hooks", () => {
       });
 
       usePulseEffect(() => {
-        effect(store.getPulse("settings").display);
+        effect(store.getPulse('settings').display);
         return cleanup;
       });
 
@@ -446,11 +457,11 @@ describe("Pulse Hooks", () => {
       cleanup.mockClear();
 
       // Update nested object
-      await store.setPulse("settings", {
+      await store.setPulse('settings', {
         display: {
-          color: "blue",
-          size: "small"
-        }
+          color: 'blue',
+          size: 'small',
+        },
       });
 
       // Manually trigger effect to simulate reactivity
@@ -458,39 +469,39 @@ describe("Pulse Hooks", () => {
 
       expect(cleanup).toHaveBeenCalled();
       expect(effect).toHaveBeenCalledWith({
-        color: "blue",
-        size: "small"
+        color: 'blue',
+        size: 'small',
       });
     });
 
-    it("should handle conditional access of nested properties", async () => {
+    it('should handle conditional access of nested properties', async () => {
       const store = new PulseStore({
         optional: {
-          nested: null as { value: string } | null
-        }
+          nested: null as { value: string } | null,
+        },
       });
 
       const effect = vi.fn();
       let effectFn: Function | undefined;
 
       usePulseEffect(() => {
-        effectFn = () => effect(store.getPulse("optional").nested?.value);
+        effectFn = () => effect(store.getPulse('optional').nested?.value);
         effectFn();
       });
 
       effect.mockClear();
 
-      await store.setPulse("optional", {
-        nested: { value: "test" }
+      await store.setPulse('optional', {
+        nested: { value: 'test' },
       });
 
       // Manually trigger effect to simulate reactivity
       effectFn?.();
 
-      expect(effect).toHaveBeenCalledWith("test");
+      expect(effect).toHaveBeenCalledWith('test');
 
-      await store.setPulse("optional", {
-        nested: null
+      await store.setPulse('optional', {
+        nested: null,
       });
 
       // Manually trigger effect to simulate reactivity

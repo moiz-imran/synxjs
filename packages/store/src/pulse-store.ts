@@ -12,10 +12,11 @@ export class PulseStore<T extends object> implements Store<T> {
   private pulses: T;
   private initialState: T;
   private middleware: Middleware<T>[] = [];
+  private subscribers = new Map<keyof T, Set<Effect>>();
 
   constructor(initialPulses: T, middleware?: Middleware<T>[]) {
     this.initialState = { ...initialPulses };
-    this.pulses = reactive(initialPulses);
+    this.pulses = reactive({ ...initialPulses });
     if (middleware) {
       this.middleware = middleware;
     }
@@ -57,6 +58,10 @@ export class PulseStore<T extends object> implements Store<T> {
 
   async setPulse<K extends keyof T>(key: K, value: T[K]): Promise<void> {
     const previousValue = this.pulses[key];
+    if (Object.is(previousValue, value)) {
+      return; // Skip if value hasn't changed
+    }
+
     const context: MiddlewareContext<T> = {
       store: this,
       key,
@@ -72,11 +77,15 @@ export class PulseStore<T extends object> implements Store<T> {
     if (typeof value === 'object' && value !== null) {
       value = reactive(value as object) as T[K];
     }
-    if (!Object.is(this.pulses[key], value)) {
-      this.pulses[key] = value;
+
+    this.pulses[key] = value;
+
+    // Notify subscribers
+    const subscribers = this.subscribers.get(key);
+    if (subscribers) {
+      subscribers.forEach((callback) => callback());
     }
 
-    // Run after middleware
     await this.runMiddleware('onAfterUpdate', context);
   }
 
@@ -93,32 +102,71 @@ export class PulseStore<T extends object> implements Store<T> {
   }
 
   async reset(): Promise<void> {
+    // Run before middleware
     await this.runResetMiddleware();
-    await this.setPulses(this.initialState);
+
+    // Create new reactive state from initial state
+    const newState = reactive({ ...this.initialState });
+
+    // Notify all subscribers regardless of changes
+    for (const [key, subscribers] of this.subscribers) {
+      subscribers.forEach(callback => {
+        callback();
+      });
+    }
+
+    // Update the pulses last
+    this.pulses = newState;
   }
 
   subscribe(key: keyof T, callback: Effect): CleanupFn {
-    return effect(() => {
-      this.getPulse(key);
-      callback();
-    });
-  }
-
-  subscribeScoped<K extends keyof T>(
-    keys: K[],
-    callback: (partialState: Pick<T, K>) => void,
-  ): CleanupFn {
-    if (keys.length === 0) {
-      return () => {}; // Return no-op cleanup for empty keys
+    let subscribers = this.subscribers.get(key);
+    if (!subscribers) {
+      subscribers = new Set();
+      this.subscribers.set(key, subscribers);
     }
 
-    // Create a single subscription that watches all keys
-    return this.subscribe(keys[0], () => {
-      const partialState: Pick<T, K> = {} as Pick<T, K>;
-      for (const key of keys) {
-        partialState[key] = this.getPulse(key);
+    // Add the callback if it's not already present
+    if (!subscribers.has(callback)) {
+      subscribers.add(callback);
+    }
+
+    return () => {
+      const subscribers = this.subscribers.get(key);
+      if (subscribers) {
+        subscribers.delete(callback);
+        if (subscribers.size === 0) {
+          this.subscribers.delete(key);
+        }
       }
+    };
+  }
+
+  subscribeScoped(
+    keys: (keyof T)[],
+    callback: (partialState: Partial<T>) => void,
+  ): CleanupFn {
+    if (keys.length === 0) {
+      return () => {};
+    }
+
+    // Create a wrapper callback that gets the latest state for all keys
+    const wrappedCallback = () => {
+      const partialState: Partial<T> = {};
+      keys.forEach((key) => {
+        partialState[key] = this.getPulse(key);
+      });
       callback(partialState);
-    });
+    };
+
+    // Subscribe to each key with the same wrapped callback
+    const cleanupFns = keys.map((key) => this.subscribe(key, wrappedCallback));
+
+    // Run the callback once immediately to get initial state
+    wrappedCallback();
+
+    return () => {
+      cleanupFns.forEach((cleanup) => cleanup());
+    };
   }
 }

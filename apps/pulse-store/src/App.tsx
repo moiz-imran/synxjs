@@ -1,15 +1,18 @@
 import { FunctionalComponent } from '@synxjs/types';
-import { usePulseEffect } from '@synxjs/hooks';
+import { usePulseEffect, usePulseState } from '@synxjs/hooks';
 import { TodoList } from './components/TodoList';
 import { FilterControls } from './components/FilterControls';
 import { UserSettings } from './components/UserSettings';
-import { StoreDebugger } from './components/StoreDebugger';
 import { store } from './store';
+import { DevTools } from '@synxjs/devtools';
+
+import '@synxjs/devtools/styles.css';
 
 export const App: FunctionalComponent = () => {
+  const [theme] = usePulseState('theme', store);
+
   // Apply theme changes
   usePulseEffect(() => {
-    const theme = store.getPulse('theme');
     document.documentElement.classList.toggle('dark', theme === 'dark');
   });
 
@@ -29,7 +32,9 @@ export const App: FunctionalComponent = () => {
           <TodoList />
         </main>
 
-        <StoreDebugger />
+        {process.env.NODE_ENV === 'development' && (
+          <DevTools store={store} position="bottom-right" theme={theme} />
+        )}
       </div>
     </div>
   );

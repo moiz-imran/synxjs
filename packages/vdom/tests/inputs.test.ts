@@ -44,7 +44,7 @@ describe('Input Handling', () => {
     const initialVNode = createElement('input', {
       type: 'checkbox',
       checked: false,
-      onChange
+      onChange,
     });
 
     const dom = render(initialVNode);
@@ -53,22 +53,22 @@ describe('Input Handling', () => {
       const checkbox = dom as HTMLInputElement;
 
       // Force the checked state to false
-      checkbox.checked = false;
       expect(checkbox.checked).toBe(false);
 
       // Update with checked state
       const updatedVNode = createElement('input', {
         type: 'checkbox',
         checked: true,
-        onChange
+        onChange,
       });
 
       diff(updatedVNode, initialVNode, container, 0);
+      expect(checkbox.checked).toBe(true);
 
       // Simulate change event
       checkbox.click();
       expect(onChange).toHaveBeenCalled();
-      expect(checkbox.checked).toBe(true);
+      expect(checkbox.checked).toBe(false);
     }
   });
 

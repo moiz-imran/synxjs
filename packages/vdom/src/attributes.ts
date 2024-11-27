@@ -1,7 +1,7 @@
 import type { VNodeProps } from '@synxjs/types';
 
 export function updateAttributes(
-  element: HTMLElement,
+  element: HTMLElement | SVGElement,
   newProps: VNodeProps,
   oldProps: VNodeProps,
 ): void {
@@ -50,6 +50,12 @@ export function updateAttributes(
       element.setAttribute('class', String(value));
     } else if (name === 'style' && typeof value === 'object') {
       Object.assign(element.style, value);
+    } else if (typeof value === 'boolean') {
+      value
+        ? element.setAttribute(name, '')
+        : element.removeAttribute(name);
+    } else if (element.tagName === 'SVG') {
+      element.setAttributeNS(null, name, String(value));
     } else {
       element.setAttribute(name, String(value));
     }

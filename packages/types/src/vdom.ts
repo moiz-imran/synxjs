@@ -44,4 +44,9 @@ declare global {
     _instance?: FunctionalComponentInstance | null;
     _listeners?: EventListenerMap;
   }
+
+  interface SVGElement {
+    _instance?: FunctionalComponentInstance | null;
+    _listeners?: EventListenerMap;
+  }
 }

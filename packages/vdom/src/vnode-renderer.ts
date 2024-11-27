@@ -99,8 +99,19 @@ function renderFunctionalVNode(
 function renderElementVNode(
   node: VNode,
   parentInstance?: FunctionalComponentInstance,
-): HTMLElement {
-  const element = document.createElement(node.type as string);
+): HTMLElement | SVGElement {
+  let element: HTMLElement | SVGElement;
+  if (node.type === 'svg' || node.type === 'path') {
+    element = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      node.type as string,
+    );
+  } else {
+    element = document.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      node.type as string,
+    );
+  }
 
   if (node.props) {
     updateAttributes(element, node.props, {});

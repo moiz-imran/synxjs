@@ -19,7 +19,7 @@ export const FilterControls: FunctionalComponent = () => {
           key={f}
           onClick={() => setFilter(f)}
           className={`px-4 py-2 rounded ${
-            filter === f ? 'bg-blue-500 text-white' : 'bg-gray-200'
+            filter === f ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'
           }`}
         >
           {f.charAt(0).toUpperCase() + f.slice(1)} ({counts[f]})

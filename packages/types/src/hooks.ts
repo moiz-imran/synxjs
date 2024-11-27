@@ -15,7 +15,8 @@ export type HookType =
   | 'pulse'
   | 'callback'
   | 'memo'
-  | 'mount';
+  | 'mount'
+  | 'ref';
 
 export interface StateHook<T = unknown> extends BaseHook {
   type: 'state';
@@ -53,10 +54,16 @@ export interface MountHook extends BaseHook {
   hasRun: boolean;
 }
 
+export interface RefObject<T> extends BaseHook {
+  type: 'ref';
+  current: T;
+}
+
 export type Hook =
   | StateHook
   | EffectHook
   | PulseHook<unknown>
   | CallbackHook<AnyFunction>
   | MemoHook<unknown>
+  | RefObject<unknown>
   | MountHook;

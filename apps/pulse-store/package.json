@@ -11,12 +11,11 @@
   "dependencies": {
     "@synxjs/types": "workspace:*",
     "@synxjs/core": "workspace:*",
-    "@synxjs/runtime": "workspace:*",
     "@synxjs/store": "workspace:*",
     "@synxjs/hooks": "workspace:*",
     "@synxjs/jsx-runtime": "workspace:*",
     "@synxjs/jsx-dev-runtime": "workspace:*",
-    "@synxjs/router": "workspace:*"
+    "@synxjs/devtools": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.3.3",

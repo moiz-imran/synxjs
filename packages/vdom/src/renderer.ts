@@ -51,7 +51,7 @@ export function renderApp(container: HTMLElement, appVNode: VNode): void {
 
 export function render(
   node: VNode | string | number | null,
-): HTMLElement | Text | null {
+): HTMLElement | SVGElement | Text | null {
   if (!node || typeof node === 'boolean') return null;
 
   if (typeof node === 'string' || typeof node === 'number') {
@@ -77,7 +77,7 @@ export function render(
   return renderIntrinsicElement(node);
 }
 
-function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
+function renderFunctionalComponent(node: VNode): HTMLElement | SVGElement | Text | null {
   const instance =
     componentInstanceCache.get(node as VNode<FunctionalComponent>) ||
     createFunctionalComponentInstance(node as VNode<FunctionalComponent>);
@@ -101,14 +101,28 @@ function renderFunctionalComponent(node: VNode): HTMLElement | Text | null {
   }
 }
 
-function renderIntrinsicElement(node: VNode): HTMLElement {
-  const element = document.createElement(node.type as string);
+function renderIntrinsicElement(node: VNode): HTMLElement | SVGElement {
+  let element: HTMLElement | SVGElement;
+  if (node.type === 'svg' || node.type === 'path') {
+    element = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      node.type as string,
+    );
+  } else {
+    element = document.createElementNS(
+      'http://www.w3.org/1999/xhtml',
+      node.type as string,
+    );
+  }
   updateAttributes(element, node.props || {}, {});
   renderChildren(element, node.children);
   return element;
 }
 
-function renderChildren(element: HTMLElement, children: VNodeChild[]): void {
+function renderChildren(
+  element: HTMLElement | SVGElement,
+  children: VNodeChild[],
+): void {
   if (!children) return;
 
   const appendChild = (child: VNodeChild): void => {

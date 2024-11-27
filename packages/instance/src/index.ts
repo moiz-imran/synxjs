@@ -3,6 +3,7 @@ import type {
   VNode,
   FunctionalComponentInstance,
   FunctionalComponent,
+  DOMNode,
 } from '@synxjs/types';
 
 export const componentInstanceCache = new WeakMap<
@@ -11,7 +12,7 @@ export const componentInstanceCache = new WeakMap<
 >();
 
 export const domToInstanceMap = new Map<
-  HTMLElement | Text,
+  DOMNode,
   FunctionalComponentInstance
 >();
 

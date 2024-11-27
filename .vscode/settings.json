@@ -18,6 +18,7 @@
     "reactivity",
     "store",
     "router",
-    "apps"
+    "apps",
+    "devtools"
   ]
 }

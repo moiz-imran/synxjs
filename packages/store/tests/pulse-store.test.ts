@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { PulseStore } from '../src';
-import { Middleware, MiddlewareContext } from '../src/types';
+import type { Middleware, MiddlewareContext } from '@synxjs/types';
 
 interface TestState {
   count: number;
@@ -164,7 +164,7 @@ describe('PulseStore', () => {
       expect(store.getPulses()).toEqual(initialState);
     });
 
-    it('should notify subscribers on reset', () => {
+    it('should notify subscribers on reset', async () => {
       const store = new PulseStore<TestState>({
         count: 0,
         nested: { value: 'test' },
@@ -173,7 +173,7 @@ describe('PulseStore', () => {
       const callback = vi.fn();
       store.subscribe('count', callback);
 
-      store.reset();
+      await store.reset();
       expect(callback).toHaveBeenCalled();
     });
 
@@ -628,7 +628,7 @@ describe('PulseStore', () => {
       callback.mockClear();
 
       // Perform multiple rapid updates
-      store.setPulse('count', 1);
+      await store.setPulse('count', 1);
       await store.setPulse('count', 2);
       await store.setPulse('name', 'updated');
       await store.setPulse('count', 3);

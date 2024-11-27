@@ -29,68 +29,48 @@ export function reactive<T extends object>(target: T): T {
   }
 
   const handler: ProxyHandler<T> = {
-    get(target: T, key: string | symbol): unknown {
-      const value = target[key as keyof T];
+    get(target: T, key: string | symbol, receiver: any): unknown {
+      const result = Reflect.get(target, key, receiver);
 
       // Track access
       if (activeEffect) {
         track(target, key);
+
+        // For arrays, track length when accessing array methods
+        if (Array.isArray(target) && typeof result === 'function') {
+          const method = key as string;
+          if (['push', 'pop', 'shift', 'unshift', 'splice'].includes(method)) {
+            // Return a wrapped method that triggers length updates
+            return function(...args: any[]) {
+              const result = Reflect.apply(target[method as keyof T], target, args);
+              trigger(target, 'length');
+              return result;
+            };
+          }
+        }
       }
 
-      // Handle array methods
-      if (Array.isArray(target) && typeof value === 'function') {
-        return function(...args: unknown[]) {
-          track(target, 'length');
-          const result = value.apply(target, args);
-          trigger(target, 'length');
-          return result;
-        };
+      // Handle nested objects
+      if (typeof result === 'object' && result !== null) {
+        return reactive(result as object);
       }
 
-      // Transform to reactive if needed
-      if (typeof value === 'object' && value !== null) {
-        const reactive_value = reactive(value as object);
-        // Store parent relationship
-        parentMap.set(reactive_value, target);
-        return reactive_value;
-      }
-
-      return value;
+      return result;
     },
-    set(target: T, key: string | symbol, value: unknown): boolean {
+    set(target: T, key: string | symbol, value: unknown, receiver: any): boolean {
       const oldValue = target[key as keyof T];
-
-      // Make new value reactive if needed
-      if (typeof value === 'object' && value !== null) {
-        value = reactive(value as object);
-        // Store parent relationship
-        parentMap.set(value as object, target);
-      }
-
-      const result = Reflect.set(target, key, value);
+      const result = Reflect.set(target, key, value, receiver);
 
       if (oldValue !== value) {
-        // Trigger the immediate property change
         trigger(target, key);
 
-        // If this is a value property, trigger effects up the parent chain
-        if (key === 'value') {
-          let current = target;
-          while (current) {
-            const parent = parentMap.get(current);
-            if (!parent) break;
-
-            const depsMap = targetMap.get(parent);
-            if (depsMap) {
-              depsMap.forEach((effects, key) => {
-                effects.forEach(effect => {
-                  if (effect !== activeEffect) {
-                    effect();
-                  }
-                });
-              });
-            }
-            current = parent as T;
+        // For arrays, trigger length changes and the array itself
+        if (Array.isArray(target)) {
+          if (key === 'length') {
+            trigger(target, 'length');
+          } else {
+            // When setting an index, also trigger the array itself
+            trigger(target, 'length');
           }
         }
       }
@@ -195,14 +175,17 @@ function cleanupEffect(effect: Effect): void {
  * @returns A cleanup function to remove the effect.
  */
 export function effect(eff: Effect): () => void {
-  cleanupEffect(eff);
+  const wrappedEffect = () => {
+    cleanupEffect(wrappedEffect);
+    activeEffect = wrappedEffect;
+    eff();
+    activeEffect = null;
+  };
 
-  activeEffect = eff;
-  eff();
-  activeEffect = null;
+  wrappedEffect(); // Run immediately to set up initial dependencies
 
   return () => {
-    cleanupEffect(eff);
+    cleanupEffect(wrappedEffect);
   };
 }
 

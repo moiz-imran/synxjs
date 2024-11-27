@@ -20,10 +20,9 @@ export function usePulseState<
   const hookIndex = component.currentHook++;
 
   if (hooks[hookIndex] === undefined) {
-    const initialValue = store.getPulse(selector);
     const hook: PulseHook<T[K]> = {
       type: 'pulse',
-      value: initialValue,
+      value: store.getPulse(selector),
     };
 
     hook.unsubscribe = store.subscribe(selector, () => {
