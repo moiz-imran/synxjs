@@ -2,8 +2,12 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['esm', 'cjs'],
+  format: ['cjs', 'esm'],
   dts: true,
+  splitting: false,
+  sourcemap: true,
   clean: true,
-  splitting: false, // Disables code-splitting to create a single bundled output
+  treeshake: true,
+  minify: true,
+  // types package typically doesn't have external dependencies
 });

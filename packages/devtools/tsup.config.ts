@@ -2,9 +2,20 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['esm', 'cjs'],
+  format: ['cjs', 'esm'],
   dts: true,
-  clean: true,
   splitting: false,
+  sourcemap: true,
+  clean: true,
+  treeshake: true,
   minify: true,
+  external: [
+    '@synxjs/types',
+    '@synxjs/core',
+    '@synxjs/runtime',
+    '@synxjs/instance',
+    '@synxjs/hooks',
+    '@synxjs/store',
+    '@synxjs/jsx-runtime',
+  ],
 });

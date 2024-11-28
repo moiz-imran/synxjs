@@ -5,5 +5,9 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   dts: true,
   clean: true,
-  splitting: false, // Disables code-splitting to create a single bundled output
+  splitting: false,
+  treeshake: true,
+  minify: true,
+  external: ['@synxjs/types'],
+  sourcemap: true,
 });
