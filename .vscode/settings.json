@@ -19,6 +19,7 @@
     "store",
     "router",
     "apps",
-    "devtools"
+    "devtools",
+    "server/client"
   ]
 }
