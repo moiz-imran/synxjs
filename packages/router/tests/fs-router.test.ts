@@ -470,7 +470,6 @@ describe('File System Router', () => {
     );
 
     const routes = generateRoutesFromFileSystem('/mock/root/src/pages');
-    console.log(routes);
     expect(routes).toHaveLength(1);
     expect(routes[0]).toMatchObject({
       path: '/users',

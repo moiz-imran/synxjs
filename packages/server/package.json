@@ -1,11 +1,23 @@
 {
-  "name": "@synxjs/core",
+  "name": "@synxjs/server",
   "version": "0.1.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
   "files": ["dist/**"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./hydration": {
+      "types": "./dist/hydration.d.ts",
+      "import": "./dist/hydration.mjs",
+      "require": "./dist/hydration.js"
+    }
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -15,13 +27,9 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@synxjs/hooks": "workspace:*",
-    "@synxjs/store": "workspace:*",
+    "@synxjs/types": "workspace:*",
+    "@synxjs/core": "workspace:*",
     "@synxjs/vdom": "workspace:*",
-    "@synxjs/runtime": "workspace:*",
-    "@synxjs/reactivity": "workspace:*",
-    "@synxjs/instance": "workspace:*",
-    "@synxjs/jsx-runtime": "workspace:*",
-    "@synxjs/types": "workspace:*"
+    "@synxjs/reactivity": "workspace:*"
   }
 }

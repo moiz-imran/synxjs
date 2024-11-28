@@ -9,10 +9,9 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: true,
-  external: ['@synxjs/types'],
-  esbuildOptions: (options) => {
-    options.banner = {
-      js: '// Test setup\nif (typeof window === "undefined") { global.window = undefined; }',
-    };
-  },
+  external: [
+    '@synxjs/types',
+    '@synxjs/core',
+    '@synxjs/server'
+  ]
 });

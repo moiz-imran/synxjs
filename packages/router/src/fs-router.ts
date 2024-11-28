@@ -55,7 +55,6 @@ function processDirectoryEntry(
   const relativePath = join(parentPath, entry);
   const normalizedPath = normalizedDynamicPath(relativePath);
 
-  console.log(normalizedPath);
   return {
     path: normalizedPath.startsWith('/')
       ? normalizedPath
