@@ -1,5 +1,5 @@
 import { createElement } from '@synxjs/vdom';
-import { renderPage } from '../src';
+import { renderPage, renderToStream } from '../src';
 import { describe, it, expect } from 'vitest';
 
 describe('Page Rendering', () => {
@@ -22,16 +22,16 @@ describe('Page Rendering', () => {
         title: 'Test Page',
         meta: [
           { name: 'description', content: 'Test description' },
-          { charset: 'utf-8' }
+          { charset: 'utf-8' },
         ],
-        links: [
-          { rel: 'stylesheet', href: '/style.css' }
-        ]
-      }
+        links: [{ rel: 'stylesheet', href: '/style.css' }],
+      },
     });
 
     expect(html).toContain('<title>Test Page</title>');
-    expect(html).toContain('<meta name="description" content="Test description"');
+    expect(html).toContain(
+      '<meta name="description" content="Test description"',
+    );
     expect(html).toContain('<meta charset="utf-8"');
     expect(html).toContain('<link rel="stylesheet" href="/style.css"');
   });
@@ -43,11 +43,17 @@ describe('Page Rendering', () => {
     const data = { message: 'Hello from data' };
     const html = await renderPage(App, {
       mode: 'ssr',
-      data
+      data,
     });
 
+    // Check that the component rendered with the data
     expect(html).toContain('Hello from data');
-    expect(html).toContain(`window.__INITIAL_DATA__ = ${JSON.stringify(data)}`);
+
+    // Check that the data is properly escaped in the script tag
+    expect(html).toContain('window.__INITIAL_DATA__');
+    expect(html).toContain('&quot;message&quot;:&quot;Hello from data&quot;');
+    expect(html).toContain('&quot;props&quot;');
+    expect(html).toContain('&quot;state&quot;');
   });
 
   it('should handle complex data serialization', async () => {
@@ -55,14 +61,16 @@ describe('Page Rendering', () => {
     const complexData = {
       html: '<script>alert("test")</script>',
       nested: {
-        value: '</script><script>alert("xss")</script>'
-      }
+        value: '</script><script>alert("xss")</script>',
+      },
     };
 
     const html = await renderPage(App, {
       mode: 'ssr',
-      data: complexData
+      data: complexData,
     });
+
+    console.log(html);
 
     // Verify the initial data script exists
     expect(html).toContain('<script>window.__INITIAL_DATA__');
@@ -70,6 +78,9 @@ describe('Page Rendering', () => {
     // Count script tags
     const scriptTags = html.match(/<script[^>]*>/g) || [];
     const closingScriptTags = html.match(/<\/script>/g) || [];
+
+    console.log(scriptTags);
+    console.log(closingScriptTags);
 
     // Should have exactly two pairs of script tags:
     // 1. The __INITIAL_DATA__ script
@@ -81,7 +92,7 @@ describe('Page Rendering', () => {
     const dangerousStrings = [
       '<script>alert("test")',
       '</script><script>',
-      'alert("xss")'
+      'alert("xss")',
     ];
 
     // These strings shouldn't appear in their raw form
@@ -103,11 +114,13 @@ describe('Page Rendering', () => {
     const html = await renderPage(App, {
       mode: 'ssr',
       head: {
-        meta: [{
-          name: 'description',
-          content: maliciousContent
-        }]
-      }
+        meta: [
+          {
+            name: 'description',
+            content: maliciousContent,
+          },
+        ],
+      },
     });
 
     // The content should be escaped as HTML entities
@@ -125,11 +138,13 @@ describe('Page Rendering', () => {
     const html = await renderPage(App, {
       mode: 'ssr',
       head: {
-        links: [{
-          rel: 'stylesheet',
-          href: maliciousContent
-        }]
-      }
+        links: [
+          {
+            rel: 'stylesheet',
+            href: maliciousContent,
+          },
+        ],
+      },
     });
 
     // The href should be escaped as HTML entities
@@ -146,8 +161,8 @@ describe('Page Rendering', () => {
     const html = await renderPage(App, {
       mode: 'ssr',
       head: {
-        title: '</title><script>alert("xss")</script><title>'
-      }
+        title: '</title><script>alert("xss")</script><title>',
+      },
     });
 
     expect(html).toContain('<title>');
@@ -178,8 +193,8 @@ describe('Page Rendering', () => {
       head: {
         title: undefined,
         meta: undefined,
-        links: undefined
-      }
+        links: undefined,
+      },
     });
 
     expect(html).toContain('<!DOCTYPE html>');
@@ -187,5 +202,27 @@ describe('Page Rendering', () => {
     expect(html).toContain('</head>');
     // Should still have charset meta
     expect(html).toContain('<meta charset="utf-8">');
+  });
+});
+
+describe('Streaming Rendering', () => {
+  it('should match SSR hydration data format', async () => {
+    const App = () => createElement('div', null, 'Test');
+    const data = { message: 'test' };
+
+    const stream = renderToStream(App(), { data });
+    const chunks: string[] = [];
+
+    await new Promise<void>((resolve) => {
+      stream.on('data', (chunk) => chunks.push(chunk.toString()));
+      stream.on('end', () => {
+        const html = chunks.join('');
+        expect(html).toContain('window.__INITIAL_DATA__');
+        expect(html).toContain('&quot;message&quot;:&quot;test&quot;');
+        expect(html).toContain('&quot;props&quot;');
+        expect(html).toContain('&quot;state&quot;');
+        resolve();
+      });
+    });
   });
 });

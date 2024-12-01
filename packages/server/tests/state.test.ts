@@ -7,7 +7,7 @@ import {
 } from '@synxjs/reactivity';
 import type { FunctionalComponent } from '@synxjs/types';
 import { createElement } from '@synxjs/vdom';
-import { renderToString } from '../src';
+import { renderToString, renderToStream } from '../src';
 
 describe('Server State Management', () => {
   beforeEach(() => {
@@ -145,7 +145,7 @@ describe('Server State Management', () => {
   });
 
   it('should handle object state', async () => {
-    const [user, setUser] = createSignal<{name: string}>({ name: 'initial' });
+    const [user, setUser] = createSignal<{ name: string }>({ name: 'initial' });
 
     const Component = () => {
       setUser({ name: 'updated' });
@@ -166,8 +166,10 @@ describe('Server State Management', () => {
       setName('Jane');
       setAge(30);
       setActive(true);
-      return createElement('div', null,
-        `${name()} is ${age()} years old and ${active() ? 'active' : 'inactive'}`
+      return createElement(
+        'div',
+        null,
+        `${name()} is ${age()} years old and ${active() ? 'active' : 'inactive'}`,
       );
     };
 
@@ -182,7 +184,7 @@ describe('Server State Management', () => {
     const [count, setCount] = createSignal(0);
 
     const Leaf = () => {
-      setCount(prev => prev + 1);
+      setCount((prev) => prev + 1);
       return createElement('span', null, count());
     };
 
@@ -201,8 +203,10 @@ describe('Server State Management', () => {
     const Component = () => {
       setShow(true);
       setText('visible');
-      return createElement('div', null,
-        show() ? createElement('span', null, text()) : null
+      return createElement(
+        'div',
+        null,
+        show() ? createElement('span', null, text()) : null,
       );
     };
 
@@ -210,5 +214,27 @@ describe('Server State Management', () => {
     expect(html).toBe('<div><span>visible</span></div>');
     expect(getServerState().signals.get(show)).toBe(true);
     expect(getServerState().signals.get(text)).toBe('visible');
+  });
+
+  it('should handle state in streaming mode', async () => {
+    const [count, setCount] = createSignal(0);
+
+    const Component = () => {
+      setCount(1);
+      return createElement('div', null, count());
+    };
+
+    const stream = renderToStream(createElement(Component, null));
+    const chunks: string[] = [];
+
+    await new Promise<void>((resolve) => {
+      stream.on('data', (chunk) => chunks.push(chunk.toString()));
+      stream.on('end', () => {
+        const html = chunks.join('');
+        expect(html).toContain('<div>1</div>');
+        expect(getServerState().signals.get(count)).toBe(1);
+        resolve();
+      });
+    });
   });
 });

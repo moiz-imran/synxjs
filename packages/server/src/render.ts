@@ -1,19 +1,11 @@
 import { enableServerMode } from '@synxjs/reactivity';
 import type { VNode } from '@synxjs/types';
+import { escapeHtml } from './utils/html';
 
 const VOID_ELEMENTS = new Set([
   'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
   'link', 'meta', 'param', 'source', 'track', 'wbr'
 ]);
-
-const escapeHTML = (str: string): string => {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
 
 // Helper to convert React-style props to HTML attributes
 function normalizeProps(props: Record<string, any>): Record<string, any> {
@@ -21,6 +13,9 @@ function normalizeProps(props: Record<string, any>): Record<string, any> {
 
   const normalized: Record<string, any> = {};
   for (const [key, value] of Object.entries(props)) {
+    // Skip event handlers during SSR
+    if (key.startsWith('on')) continue;
+
     // Convert className to class
     if (key === 'className') {
       normalized['class'] = value;
@@ -34,71 +29,63 @@ function normalizeProps(props: Record<string, any>): Record<string, any> {
   return normalized;
 }
 
-// Update renderProps to use normalized props
 function renderProps(props: Record<string, any>): string {
   const normalized = normalizeProps(props);
 
-  return Object.entries(normalized).map(([key, value]) => {
-    if (typeof value === 'boolean') {
-      return value ? key : '';
-    }
-    if (value != null) {
-      return `${key}="${escapeHTML(String(value))}"`;
-    }
-    return '';
-  }).filter(Boolean).join(' ');
+  return Object.entries(normalized)
+    .map(([key, value]) => {
+      if (typeof value === 'boolean') {
+        return value ? key : '';
+      }
+      if (value != null) {
+        return `${key}="${escapeHtml(String(value))}"`;
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .join(' ');
 }
 
-export async function renderToString(vnode: VNode): Promise<string> {
-  enableServerMode(true);
+export async function renderToString(node: VNode | string | number | null | undefined): Promise<string> {
+  if (node == null) return '';
 
-  try {
-    // Handle function components
-    if (typeof vnode.type === 'function') {
-      const result = await vnode.type(vnode.props || {});
-      return renderToString(result);
-    }
-
-    const props = renderProps(vnode.props);
-    const propsString = props ? ` ${props}` : '';
-
-    // Handle primitive children (strings, numbers)
-    if (typeof vnode.children === 'string' || typeof vnode.children === 'number') {
-      const content = escapeHTML(String(vnode.children));
-      if (VOID_ELEMENTS.has(vnode.type as string)) {
-        return `<${vnode.type}${propsString}>`;
-      }
-      return `<${vnode.type}${propsString}>${content}</${vnode.type}>`;
-    }
-
-    // Handle array children
-    if (Array.isArray(vnode.children)) {
-      const children = await Promise.all(
-        vnode.children
-          .filter((child) => child != null) // Filter out null and undefined
-          .map((child) =>
-            typeof child === 'object'
-              ? renderToString(child as VNode)
-              : escapeHTML(String(child)),
-          ),
-      );
-
-      if (VOID_ELEMENTS.has(vnode.type as string)) {
-        return `<${vnode.type}${propsString}>`;
-      }
-      return `<${vnode.type}${propsString}>${children.join('')}</${vnode.type}>`;
-    }
-
-    // Default case
-    if (VOID_ELEMENTS.has(vnode.type as string)) {
-      return `<${vnode.type}${propsString}>`;
-    }
-    return `<${vnode.type}${propsString}>${vnode.children || ''}</${vnode.type}>`;
-
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      return `<div class="error">${escapeHTML(error.message)}</div>`;
-    }
-    return `<div class="error">An unknown error occurred</div>`;
+  // Handle primitive values directly
+  if (typeof node === 'string' || typeof node === 'number') {
+    return escapeHtml(String(node));
   }
+
+  // Handle VNode
+  const { type, props, children } = node;
+
+  // Handle functional components
+  if (typeof type === 'function') {
+    const result = type(props);
+    return renderToString(result);
+  }
+
+  // Special case for text nodes
+  if (type === 'text') {
+    return escapeHtml(children.join(''));
+  }
+
+  // Enable server mode for reactivity system
+  enableServerMode();
+
+  if (!node || typeof node !== 'object') {
+    return '';
+  }
+
+  const renderedProps = renderProps(props || {});
+  const childrenStr = Array.isArray(children)
+    ? (await Promise.all(children.map(child => renderToString(child as VNode)))).join('')
+    : await renderToString(children as VNode);
+
+  const tag = type;
+  const propsStr = renderedProps ? ` ${renderedProps}` : '';
+
+  if (VOID_ELEMENTS.has(tag)) {
+    return `<${tag}${propsStr}>`;
+  }
+
+  return `<${tag}${propsStr}>${childrenStr}</${tag}>`;
 }

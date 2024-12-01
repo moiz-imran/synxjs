@@ -1,4 +1,5 @@
 import type { VNode } from '@synxjs/types';
+import { getServerState } from '@synxjs/reactivity';
 
 // Add hydration markers to server-rendered HTML
 export function addHydrationMarkers(html: string, id: string): string {
@@ -48,40 +49,38 @@ function attachEventListeners(vnode: VNode, element: HTMLElement): void {
   }
 }
 
-const escapeScriptContent = (str: string): string => {
-  return str
-    .replace(/<\/script>/ig, '<\\u002fscript>')
-    .replace(/<!--/g, '<\\u0021--')
-    .replace(/<script/ig, '<\\u0073cript');
-};
-
-const escapeHtmlInString = (str: string): string => {
-  return str
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e');
-};
+export interface HydrationData {
+  props: any;
+  state: Record<string, any>;
+  timestamp: number;
+}
 
 export const serializeHydrationData = (data: any): string => {
-  // Handle circular references and escape HTML in strings
-  const seen = new WeakSet();
+  const hydrationData: HydrationData = {
+    props: data,
+    state: getServerState(),
+    timestamp: Date.now(),
+  };
 
-  return JSON.stringify(data, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return '[Circular]';
-      }
-      seen.add(value);
-    }
-    // Escape HTML in string values
-    if (typeof value === 'string') {
-      return escapeHtmlInString(value);
-    }
-    return value;
-  });
+  return JSON.stringify(hydrationData);
 };
 
 export const generateHydrationScript = (data: any): string => {
-  const serialized = escapeScriptContent(serializeHydrationData(data));
+  const hydrationData = {
+    props: data,
+    state: getServerState(),
+    timestamp: Date.now(),
+  };
 
-  return `<script>window.__INITIAL_DATA__ = ${serialized};</script>`;
+  // First JSON stringify to handle the data structure
+  const serialized = JSON.stringify(hydrationData)
+    // Escape all potentially dangerous characters
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\//g, '\\u002f')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
+  // Return just the serialized data, let HTML generation handle the script tag
+  return serialized;
 };

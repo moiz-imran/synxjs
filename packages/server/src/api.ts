@@ -76,7 +76,7 @@ export class APIRouter {
 
   private addRoute(route: APIRoute) {
     const { method, path } = route;
-    const fullPath = this.prefix + path;
+    const fullPath = path.startsWith(this.prefix) ? path : this.prefix + path;
 
     if (!this.routes.has(fullPath)) {
       this.routes.set(fullPath, new Map());
@@ -87,11 +87,15 @@ export class APIRouter {
 
   private parseRoute(path: string): RegExp {
     return new RegExp(
-      '^' + path.replace(/\/:([^/]+)/g, '/([^/]+)').replace(/\/$/, '') + '/?$',
+      '^' +
+      path
+        .replace(/\/:([^/]+)/g, '/([^/]+)')
+        .replace(/\/$/, '')
+      + '/?$'
     );
   }
 
-  private matchRoute(requestPath: string): [APIRoute | undefined, RouteParams] {
+  private matchRoute(requestPath: string, method: HTTPMethod): [APIRoute | undefined, RouteParams] {
     for (const [routePath, methods] of this.routes.entries()) {
       const pattern = this.parseRoute(routePath);
       const match = requestPath.match(pattern);
@@ -106,7 +110,9 @@ export class APIRouter {
           params[name] = match[i + 1];
         });
 
-        return [methods.values().next().value, params];
+        // Get the route for the specific HTTP method
+        const route = methods.get(method);
+        return [route, params];
       }
     }
 
@@ -164,7 +170,7 @@ export class APIRouter {
       const method = req.method as HTTPMethod;
 
       // Match route and get params
-      const [route, params] = this.matchRoute(path);
+      const [route, params] = this.matchRoute(path, method);
       if (!route) {
         return APIResponse.error('Not Found', 404);
       }

@@ -34,7 +34,7 @@ describe('Client Hydration', () => {
 
     // Setup initial data
     const initialData = { foo: 'bar' };
-    (window as any).__INITIAL_DATA__ = initialData;
+    (window as any).__INITIAL_DATA__ = { props: initialData };
 
     // Create test app
     const App = (props: any): VNode => ({
@@ -74,6 +74,41 @@ describe('Client Hydration', () => {
       {
         type: 'div',
         props: undefined,
+        children: [],
+      },
+      container,
+    );
+  });
+
+  it('should wait for data when shouldWaitForData is true', async () => {
+    // Setup DOM
+    const container = document.createElement('div');
+    container.setAttribute('data-hydrate', 'root');
+    document.body.appendChild(container);
+
+    // Create test app
+    const App = (props: any): VNode => ({
+      type: 'div',
+      props,
+      children: [],
+    });
+
+    // Start hydration without data
+    hydrateClient(App, { shouldWaitForData: true });
+    expect(hydrate).not.toHaveBeenCalled();
+
+    // Add data after delay
+    setTimeout(() => {
+      (window as any).__INITIAL_DATA__ = { props: { foo: 'bar' } };
+    }, 50);
+
+    // Wait for hydration
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(hydrate).toHaveBeenCalledWith(
+      {
+        type: 'div',
+        props: { foo: 'bar' },
         children: [],
       },
       container,
