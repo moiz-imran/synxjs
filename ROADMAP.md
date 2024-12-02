@@ -18,7 +18,7 @@
 - [x] Server-side rendering (@server)
 - [x] Static site generation
 - [x] Basic hydration (@client)
-- [ ] Streaming SSR improvements
+- [x] Streaming SSR improvements
   - [x] Selective streaming
     - [x] Priority-based streaming
     - [x] Deferred streaming
@@ -35,7 +35,8 @@
   - [x] Data serialization
   - [x] Security
     - [x] HTML escaping
-    - [x] Circular reference detection
+    - [x] XSS prevention
+    - [x] Data sanitization
 - [ ] Partial hydration
 - [ ] Island architecture
 - [ ] Component prefetching
@@ -65,6 +66,7 @@
   - [x] Tree shaking
 - [x] Code splitting
   - [x] Package-level splitting (monorepo)
+  - [x] Integration-level splitting (vike)
   - [ ] Route-based splitting
   - [ ] Component-level splitting
 - [ ] Build-time optimizations
@@ -188,7 +190,13 @@
 ## Infrastructure
 - [x] Monorepo tooling (using Turborepo)
 - [x] Package structure
+  - [x] Core packages separation
+  - [x] Plugin system
+  - [x] Framework integrations
 - [x] Build system (@tsup)
+  - [x] Multiple entry points
+  - [x] Integration builds
+  - [x] Plugin builds
 - [x] Testing setup (Vitest)
 - [ ] CI/CD improvements
 - [ ] Automated release process

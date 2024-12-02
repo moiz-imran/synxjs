@@ -32,6 +32,10 @@
   - [x] Middleware system
 
 ## Should Have (Before v1.0.0)
+- [x] Package structure improvements
+  - [x] Clear separation of plugins
+  - [x] Framework integrations
+  - [x] Multiple entry points
 - [ ] Error boundaries (finish implementation)
 - [ ] Documentation
   - [ ] API documentation
@@ -52,9 +56,12 @@
 - Portals
 - Refs system
 - Advanced SSR features
-  - Streaming
-  - Progressive hydration
-  - Island architecture
+  - [x] Streaming
+    - [x] Shell generation
+    - [x] Error boundaries
+    - [x] Head management
+  - [ ] Progressive hydration
+  - [ ] Island architecture
 - Advanced asset optimization
 - Advanced DevTools
 - Performance profiling
