@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ssrPlugin } from '../../src/plugins/ssr';
+import { ssrPlugin } from '../../src/plugins';
 import type { Plugin } from 'vite';
 
 describe('SSR Plugin', () => {

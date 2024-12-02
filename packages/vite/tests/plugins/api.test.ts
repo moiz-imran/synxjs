@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { apiPlugin } from '../../src/plugins/api';
+import { apiPlugin } from '../../src/plugins';
 import type { Plugin } from 'vite';
 
 describe('API Plugin', () => {

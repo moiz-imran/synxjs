@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fileSystemRouter } from '../../src/plugins/fs-router';
+import { fileSystemRouter } from '../../src/plugins';
 import fs, { PathLike } from 'fs';
 import { join } from 'path';
 import type { Plugin, ViteDevServer } from 'vite';

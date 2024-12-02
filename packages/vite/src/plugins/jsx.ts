@@ -14,17 +14,25 @@ export function jsxPlugin(options: JSXPluginOptions = {}): Plugin {
     config() {
       return {
         esbuild: {
-          jsxFactory: 'jsx',
-          jsxFragment: 'Fragment',
-          jsxInject: `import { jsx, Fragment } from '@synxjs/${development ? 'jsx-dev-runtime' : 'jsx-runtime'}'`,
+          jsx: 'automatic',
+          jsxImportSource: '@synxjs',
+          jsxDev: development,
+          minifyIdentifiers: !development,
+          keepNames: development,
         },
-        resolve: {
-          alias: {
-            'react/jsx-runtime': `@synxjs/${development ? 'jsx-dev-runtime' : 'jsx-runtime'}`,
-            'react/jsx-dev-runtime': '@synxjs/jsx-dev-runtime',
-          },
-        },
+        define: {
+          __DEV__: development,
+        }
       };
     },
+
+    transform(code, id) {
+      if (!id.endsWith('.tsx') || !development) return null;
+
+      return {
+        code: `// File: ${id}\n${code}`,
+        map: null
+      };
+    }
   };
 }
