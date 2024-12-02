@@ -62,7 +62,15 @@ export const serializeHydrationData = (data: any): string => {
     timestamp: Date.now(),
   };
 
-  return JSON.stringify(hydrationData);
+  return JSON.stringify(hydrationData, (_, value) => {
+    if (value instanceof Error) {
+      return {
+        message: value.message,
+        stack: value.stack
+      };
+    }
+    return value;
+  });
 };
 
 export const generateHydrationScript = (data: any): string => {

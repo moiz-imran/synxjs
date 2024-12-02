@@ -5,6 +5,7 @@ import {
   serializeHydrationData,
 } from '@synxjs/server/hydration';
 import type { PageContextServer, RenderResult } from './types';
+import { generateLinkTags, generateMetaTags } from './utils';
 
 export { render };
 export { passToClient };
@@ -32,6 +33,7 @@ async function render(pageContext: PageContextServer): Promise<RenderResult> {
         selective,
         onShellReady,
         onError: (error) => {
+          console.trace('error');
           console.error('Streaming error:', error);
           onError?.(error);
           stream.emit('error', error);
@@ -45,11 +47,13 @@ async function render(pageContext: PageContextServer): Promise<RenderResult> {
         },
       };
     } else {
+      console.log('regular SSR mode');
       // Regular SSR mode
       const pageHtml = await renderToString(Page(pageProps));
       const hydratedHtml = addHydrationMarkers(pageHtml, 'root');
       const serializedData = serializeHydrationData(pageProps);
 
+      console.log('serializedData', serializedData);
       // Escape head content
       const title = pageContext.head?.title
         ? escapeHtml(pageContext.head.title)
@@ -68,21 +72,10 @@ async function render(pageContext: PageContextServer): Promise<RenderResult> {
             <div id="root">${dangerouslySkipEscape(hydratedHtml)}</div>
             <script>
               window.__INITIAL_DATA__ = ${dangerouslySkipEscape(
-                JSON.stringify(
-                  {
-                    props: pageProps,
-                    mode,
-                  },
-                  (_, value) => {
-                    if (value instanceof Error) {
-                      return {
-                        message: value.message,
-                        stack: value.stack,
-                      };
-                    }
-                    return value;
-                  },
-                ),
+                JSON.stringify({
+                  props: pageProps,
+                  mode,
+                }),
               )}
             </script>
             ${mode === 'ssg' ? '' : '<script type="module" src="/client.js"></script>'}
@@ -98,35 +91,13 @@ async function render(pageContext: PageContextServer): Promise<RenderResult> {
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
+      console.log('error instance of Error 3');
       console.error('Render error:', error);
       onError?.(error);
       throw error;
     }
+    console.log('unknown error');
     // Re-throw unknown errors
     throw error;
   }
-}
-
-function generateMetaTags(meta?: Array<{ [key: string]: string }>) {
-  if (!meta) return '';
-  return meta
-    .map(
-      (m) =>
-        `<meta ${Object.entries(m)
-          .map(([k, v]) => `${k}="${escapeHtml(v)}"`)
-          .join(' ')}>`,
-    )
-    .join('\n');
-}
-
-function generateLinkTags(links?: Array<{ [key: string]: string }>) {
-  if (!links) return '';
-  return links
-    .map(
-      (l) =>
-        `<link ${Object.entries(l)
-          .map(([k, v]) => `${k}="${escapeHtml(v)}"`)
-          .join(' ')}>`,
-    )
-    .join('\n');
 }
