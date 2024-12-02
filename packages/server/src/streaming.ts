@@ -1,36 +1,29 @@
-import { Readable } from 'stream';
-import { VNode } from '@synxjs/types';
+import { PassThrough } from 'stream';
+import { StreamingOptions, VNode } from '@synxjs/types';
 import { renderToString } from './render';
 import { addHydrationMarkers, serializeHydrationData } from './hydration';
 import { generateHTML } from './utils/html';
 import { escapeHtml } from './utils/escape';
 import { resetServerState } from '@synxjs/reactivity';
 
-export interface StreamingOptions {
-  onShellReady?: () => void;
-  onError?: (error: Error) => void;
-  data?: any;
-  head?: {
-    title?: string;
-    meta?: Array<{ [key: string]: string }>;
-    links?: Array<{ [key: string]: string }>;
-    scripts?: string[];
-  };
-}
-
 export function renderToStream(
   vnode: VNode,
   options: StreamingOptions = {},
-): Readable {
+): PassThrough {
   // Reset server state at the start of each render
   resetServerState();
 
-  const stream = new Readable({
-    /* v8 ignore next */
-    read() {}, // Implementation handled by push()
-  });
+  const stream = new PassThrough();
 
-  const { head = {}, data = {} } = options;
+  const { head = {}, data = {}, selective } = options;
+
+  // Handle selective streaming
+  if (selective?.defer) {
+    stream.cork();
+    setTimeout(() => {
+      stream.uncork();
+    }, selective.timeout || 0);
+  }
 
   // Escape head content for security
   if (head.title) {
@@ -45,7 +38,6 @@ export function renderToStream(
   // Start with shell (DOCTYPE, head, opening body)
   try {
     const serializedData = serializeHydrationData(data);
-    console.log('serializedData', serializedData);
     const shell = generateHTML({
       body: '',
       head,
@@ -55,14 +47,24 @@ export function renderToStream(
     stream.push(shell);
     options.onShellReady?.();
 
-    // Render content
+    // Render content with priority handling
     Promise.resolve().then(async () => {
       try {
         const content = await renderToString(vnode);
         const hydratedContent = addHydrationMarkers(content, 'root');
-        stream.push(hydratedContent);
-        stream.push('</body></html>');
-        stream.push(null);
+
+        if (selective?.priority === 'low') {
+          // Defer low priority content
+          setTimeout(() => {
+            stream.push(hydratedContent);
+            stream.push('</body></html>');
+            stream.push(null);
+          }, 0);
+        } else {
+          stream.push(hydratedContent);
+          stream.push('</body></html>');
+          stream.push(null);
+        }
       } catch (error) {
         options.onError?.(error as Error);
         stream.destroy(error as Error);

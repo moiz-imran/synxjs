@@ -1,9 +1,8 @@
 import { createElement, Fragment } from '@synxjs/vdom';
 import { Router } from './store';
-import { Route } from './types';
 import { matchRoute, matchSingleRoute } from './matcher';
 import { useRouter } from './hooks';
-import type { FunctionalComponent, VNode } from '@synxjs/types';
+import type { FunctionalComponent, VNode, Route } from '@synxjs/types';
 import { usePulseState, useState } from '@synxjs/hooks';
 import { setCurrentRouter } from './context';
 

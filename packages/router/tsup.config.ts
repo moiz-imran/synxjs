@@ -19,22 +19,4 @@ export default defineConfig([
       '@synxjs/runtime',
     ],
   },
-  {
-    // Node.js bundle for Vite plugin
-    entry: ['src/vite-plugin.ts'],
-    format: ['esm', 'cjs'],
-    dts: true,
-    platform: 'node',
-    outDir: 'dist/node',
-    external: ['vite', 'fs', 'path'],
-  },
-  {
-    // File system router utilities
-    entry: ['src/fs-router.ts'],
-    format: ['esm', 'cjs'],
-    dts: true,
-    platform: 'node',
-    outDir: 'dist/node',
-    external: ['fs', 'path'],
-  },
 ]);

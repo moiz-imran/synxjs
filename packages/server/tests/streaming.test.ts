@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderToStream, StreamingOptions } from '../src/streaming';
-import { VNode } from '@synxjs/types';
+import { renderToStream } from '../src/streaming';
+import { Head, VNode } from '@synxjs/types';
 import { enableServerMode } from '@synxjs/reactivity';
 import * as hydration from '../src/hydration';
 
@@ -108,7 +108,7 @@ describe('Streaming SSR', () => {
       children: ['Content'],
     };
 
-    const head: StreamingOptions['head'] = {
+    const head: Head = {
       title: 'Test Page',
       meta: [
         { name: 'description', content: 'Test description' },

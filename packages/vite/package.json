@@ -1,16 +1,26 @@
 {
-  "name": "@synxjs/router",
+  "name": "@synxjs/vite",
   "version": "0.1.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "sideEffects": false,
-  "files": ["dist/**"],
+  "files": [
+    "dist/**"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "import": "./dist/plugins.mjs",
+      "require": "./dist/plugins.js"
+    },
+    "./vike": {
+      "types": "./src/vike/renderer/types.ts",
+      "import": "./src/vike/renderer/_default.page.server.ts"
     }
   },
   "scripts": {
@@ -22,12 +32,9 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
+    "@synxjs/core": "workspace:*",
+    "@synxjs/server": "workspace:*",
     "@synxjs/types": "workspace:*",
-    "@synxjs/hooks": "workspace:*",
-    "@synxjs/store": "workspace:*",
-    "@synxjs/vdom": "workspace:*",
-    "@synxjs/jsx-runtime": "workspace:*",
-    "@synxjs/jsx-dev-runtime": "workspace:*",
-    "@synxjs/runtime": "workspace:*"
+    "vike": "^0.4.206"
   }
 }

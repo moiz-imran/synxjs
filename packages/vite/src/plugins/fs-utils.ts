@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { LazyRoute } from './types';
+import type { LazyRoute } from '@synxjs/types';
 
 const { join, parse } = path;
 

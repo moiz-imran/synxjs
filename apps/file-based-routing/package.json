@@ -17,7 +17,8 @@
     "@synxjs/jsx-runtime": "workspace:*",
     "@synxjs/jsx-dev-runtime": "workspace:*",
     "@synxjs/router": "workspace:*",
-    "@synxjs/vdom": "workspace:*"
+    "@synxjs/vdom": "workspace:*",
+    "@synxjs/vite": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.3.3",

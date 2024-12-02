@@ -1,5 +1,5 @@
 import { PulseStore } from '@synxjs/store';
-import { RouterState, RouterStore, Route, RouterOptions } from './types';
+import { RouterState, RouterStore, Route, RouterOptions } from '@synxjs/types';
 import { setCurrentRouter } from './context';
 import { matchRoute } from './matcher';
 import { findRoute } from './components';

@@ -1,7 +1,10 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/hydration.ts'],
+  entry: {
+    index: 'src/index.ts',
+    plugins: 'src/plugins/index.ts',
+  },
   format: ['cjs', 'esm'],
   dts: true,
   splitting: false,
@@ -9,5 +12,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: true,
-  external: ['@synxjs/types', '@synxjs/vdom', '@synxjs/core'],
+  external: ['@synxjs/types'],
 });

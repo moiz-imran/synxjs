@@ -18,16 +18,6 @@
       "types": "./dist/hydration.d.ts",
       "import": "./dist/hydration.mjs",
       "require": "./dist/hydration.js"
-    },
-    "./api": {
-      "types": "./dist/api.d.ts",
-      "import": "./dist/api.mjs",
-      "require": "./dist/api.js"
-    },
-    "./dev": {
-      "types": "./dist/dev.d.ts",
-      "import": "./dist/dev.mjs",
-      "require": "./dist/dev.js"
     }
   },
   "scripts": {
@@ -42,16 +32,6 @@
     "@synxjs/core": "workspace:*",
     "@synxjs/reactivity": "workspace:*",
     "@synxjs/types": "workspace:*",
-    "@synxjs/vdom": "workspace:*",
-    "@vue/compiler-sfc": "^3.4.0",
-    "chokidar": "^3.5.3",
-    "css": "^3.0.0",
-    "esbuild": "^0.20.0",
-    "ws": "^8.16.0"
-  },
-  "devDependencies": {
-    "@types/css": "^0.0.37",
-    "@types/ws": "^8.5.10",
-    "web-streams-polyfill": "^4.0.0"
+    "@synxjs/vdom": "workspace:*"
   }
 }

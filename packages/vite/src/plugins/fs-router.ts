@@ -1,8 +1,5 @@
 import type { Plugin } from 'vite';
-import {
-  generateRoutesFromFileSystem,
-  type GeneratedRoute,
-} from './fs-router';
+import { generateRoutesFromFileSystem, type GeneratedRoute } from './fs-utils';
 import { join } from 'path';
 import fs from 'fs';
 

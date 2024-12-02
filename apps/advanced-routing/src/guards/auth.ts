@@ -1,4 +1,5 @@
-import { getRouter, RouteGuard } from '@synxjs/router';
+import { getRouter } from '@synxjs/router';
+import type { RouteGuard } from '@synxjs/types';
 import { authStore } from '../store';
 
 export const authGuard: RouteGuard = (to: string) => {

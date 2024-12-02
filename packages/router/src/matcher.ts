@@ -1,4 +1,4 @@
-import { Route, RouteMatch } from './types';
+import { Route, RouteMatch } from '@synxjs/types';
 
 export function matchRoute(
   pathname: string,

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { fileSystemRouter } from '@synxjs/router/vite-plugin';
+import { fileSystemRouter } from '@synxjs/vite/plugins';
 import type { PluginOption } from 'vite';
 
 export default defineConfig({

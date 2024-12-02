@@ -5,7 +5,9 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
-  "files": ["dist/**"],
+  "files": [
+    "dist/**"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -22,8 +24,8 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@synxjs/types": "workspace:*",
     "@synxjs/core": "workspace:*",
-    "@synxjs/server": "workspace:*"
+    "@synxjs/server": "workspace:*",
+    "@synxjs/types": "workspace:*"
   }
 }

@@ -1,8 +1,8 @@
-import { Route } from '@synxjs/router';
 import { authGuard } from './guards/auth';
 import { adminGuard } from './guards/admin';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import type { Route } from '@synxjs/types';
 
 export const routes: Route[] = [
   {
