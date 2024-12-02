@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '../../src/vike/renderer/_default.page.server';
-import type { PageContextServer } from '../../src/vike/renderer/types';
+import { render } from '../../src/integrations/vike/renderer/_default.page.server';
+import type { PageContextServer } from '../../src/integrations/vike/renderer/types';
 import { PassThrough } from 'stream';
 import { renderToStream, serializeHydrationData } from '@synxjs/server';
 

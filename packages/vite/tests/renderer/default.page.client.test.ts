@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from '../../src/vike/renderer/_default.page.client';
+import { render } from '../../src/integrations/vike/renderer/_default.page.client';
 import { hydrate } from '@synxjs/server/hydration';
 import { renderApp } from '@synxjs/vdom';
-import type { PageContextClient } from '../../src/vike/renderer/types';
+import type { PageContextClient } from '../../src/integrations/vike/renderer/types';
 
 // Mock @synxjs/server
 vi.mock('@synxjs/server/hydration', () => ({

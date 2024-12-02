@@ -14,13 +14,14 @@
       "require": "./dist/index.js"
     },
     "./plugins": {
-      "types": "./dist/plugins.d.ts",
-      "import": "./dist/plugins.mjs",
-      "require": "./dist/plugins.js"
+      "types": "./dist/plugins/index.d.ts",
+      "import": "./dist/plugins/index.mjs",
+      "require": "./dist/plugins/index.js"
     },
-    "./vike": {
-      "types": "./src/vike/renderer/types.ts",
-      "import": "./src/vike/renderer/_default.page.server.ts"
+    "./integrations/vike": {
+      "types": "./dist/integrations/vike/index.d.ts",
+      "import": "./dist/integrations/vike/index.mjs",
+      "require": "./dist/integrations/vike/index.js"
     }
   },
   "scripts": {
