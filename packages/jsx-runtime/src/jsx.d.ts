@@ -1,9 +1,9 @@
 // Declare createElement globally
-declare function createElement(
-  type: never,
-  props: never,
-  ...children: never[]
-): VNode;
+declare function createElement<P extends VNodeProps>(
+  type: string | Fragment | FunctionalComponent,
+  props: P | null,
+  ...children: VNodeChildren
+): VNode<VNodeType>;
 
 declare global {
   const Fragment: unique symbol;

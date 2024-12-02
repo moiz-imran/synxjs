@@ -18,7 +18,7 @@ export async function render(pageContext: PageContextClient) {
     const vnode = Page(pageProps);
 
     // Use hydration if SSR
-    if (document.querySelector('[data-hydrate]')) {
+    if (root.querySelector(`[data-hydrate]`)) {
       hydrate(vnode, root);
     } else {
       renderApp(root, vnode);
