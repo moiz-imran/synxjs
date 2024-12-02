@@ -1,4 +1,4 @@
-import { createElement, renderApp } from '@synxjs/core';
+import { createElement, renderApp } from '@synxjs/vdom';
 import { hydrate } from '@synxjs/server/hydration';
 import type { PageContextClient } from './types';
 

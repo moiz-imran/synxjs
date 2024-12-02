@@ -32,9 +32,11 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "@synxjs/core": "workspace:*",
+    "@synxjs/vdom": "workspace:*",
     "@synxjs/server": "workspace:*",
     "@synxjs/types": "workspace:*",
+    "@synxjs/jsx-runtime": "workspace:*",
+    "@synxjs/jsx-dev-runtime": "workspace:*",
     "vike": "^0.4.206"
   }
 }

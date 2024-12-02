@@ -22,6 +22,7 @@
     "router",
     "apps",
     "devtools",
-    "server/client"
+    "server/client",
+    "vite"
   ]
 }

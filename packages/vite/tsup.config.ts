@@ -12,5 +12,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: true,
-  external: ['@synxjs/types'],
+  external: ['@synxjs/types', '@synxjs/vdom', '@synxjs/server', 'vike'],
 });

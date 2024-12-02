@@ -37,7 +37,7 @@ export function apiPlugin(options: APIPluginOptions = {}): Plugin {
                   },
                 });
 
-                const nodeStream = stream.pipeTo(
+                await stream.pipeTo(
                   new WritableStream({
                     write(chunk) {
                       res.write(chunk);
